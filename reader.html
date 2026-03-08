@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <link rel="icon" type="image/png" href="https://img.icons8.com/ios-filled/50/e50914/book-stack.png">
+    <link rel="apple-touch-icon" href="https://img.icons8.com/ios-filled/150/e50914/book-stack.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leitor Profissional - STAANT</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    
+    <style>
+        :root {
+            --primary-red: #e50914;
+            --dark-bg: #121212;
+            --card-bg: #1f1f1f;
+            --border-gray: #374151;
+            --bookmark-yellow: #ffeb3b; 
+        }
+
+        #ui-wrapper {
+            position: fixed; top: 0; left: 0; width: 100%; z-index: 100;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+
+        :fullscreen #ui-wrapper { transform: translateY(-90%); opacity: 0; }
+        :fullscreen #ui-wrapper:hover { transform: translateY(0); opacity: 1; }
+
+        #reader-container {
+            flex: 1; display: flex; justify-content: center; align-items: flex-start; 
+            padding-top: 120px; background-color: var(--dark-bg);
+            overflow-y: auto; height: 100vh;
+        }
+
+        :fullscreen #reader-container { padding-top: 20px !important; }
+
+        body { 
+            font-family: 'Roboto', sans-serif; 
+            background-color: var(--dark-bg) !important;
+            color: #fff; margin: 0; overflow: hidden;
+        }
+
+        .glass-header {
+            background: rgba(31, 31, 31, 0.98);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-gray);
+        }
+
+        #viewer {
+            width: 100%; max-width: 800px;
+            background-color: white;
+            box-shadow: 0 0 40px rgba(0,0,0,0.8);
+            position: relative; min-height: 100%;
+        }
+
+        .nav-button { background: var(--primary-red); display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+        .nav-button:hover { background: #f87171; transform: scale(1.05); }
+        .control-select { background: #2d2d2d; border: 1px solid #444; border-radius: 6px; padding: 4px 8px; font-size: 0.85rem; color: #ccc; outline: none; }
+
+        #bookmarkBtn { opacity: 0.5; pointer-events: none; }
+        #bookmarkBtn.enabled { opacity: 1; pointer-events: auto; }
+    </style>
+</head>
+<body>
+    
+    <div id="ui-wrapper">
+        <header class="glass-header w-full h-14 flex items-center px-4 justify-between">
+            <div class="flex items-center gap-4">
+                <button onclick="window.location.href='index.html'" class="text-gray-400 hover:text-white transition-colors">
+                    <i class="fa-solid fa-arrow-left text-xl"></i>
+                </button>
+                <h1 id="bookTitle" class="text-sm font-bold uppercase tracking-widest text-gray-300 truncate max-w-md text-left">CARREGANDO...</h1>
+            </div>
+            <div class="flex items-center gap-3">
+                <button id="bookmarkBtn" class="text-gray-500 text-lg transition-all">
+                    <i id="bookmarkIcon" class="fa-solid fa-bookmark"></i>
+                </button>
+                <button id="fullscreenBtn" class="text-gray-400 hover:text-red-500"><i class="fa-solid fa-expand"></i></button>
+            </div>
+        </header>
+
+        <nav id="controls" class="glass-header w-full h-14 flex items-center px-4 justify-between">
+            <div class="flex items-center gap-2">
+                <button id="prevBtn" class="nav-button w-8 h-8 rounded-full text-white"><i class="fa-solid fa-chevron-left text-xs"></i></button>
+                <span id="pageCounter" class="text-[10px] font-mono text-gray-400 w-24 text-center">Iniciando...</span>
+                <button id="nextBtn" class="nav-button w-8 h-8 rounded-full text-white"><i class="fa-solid fa-chevron-right text-xs"></i></button>
+            </div>
+
+            <div class="hidden md:flex items-center gap-4">
+                <select id="chaptersDropdown" class="control-select w-40"></select>
+                <select id="highlightsDropdown" class="control-select w-40">
+                    <option value="" disabled selected>Destaques</option>
+                </select>
+                <select id="themeDropdown" class="control-select">
+                    <option value="dark">Escuro</option>
+                    <option value="sepia" selected>Sépia</option>
+                    <option value="light">Claro</option>
+                </select>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <div class="w-20 h-1 bg-gray-700 rounded-full overflow-hidden">
+                    <div id="progressBar" class="bg-red-600 h-full w-0 transition-all"></div>
+                </div>
+                <span id="progressPercent" class="text-[10px] text-red-500 font-bold">0%</span>
+            </div>
+        </nav>
+    </div>
+
+    <main id="reader-container">
+        <div id="viewer"></div>
+    </main>
+
+    <div id="font-control" class="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 bg-[#1f1f1f]/90 backdrop-blur-md px-6 py-3 rounded-2xl border border-gray-700 flex items-center gap-6 shadow-2xl opacity-40 hover:opacity-100 transition-opacity">
+        <button onclick="changeFontSize(-2)" class="text-gray-400 hover:text-white transition-colors p-2"><span class="text-sm font-bold italic">A</span></button>
+        <div class="h-4 w-[1px] bg-gray-600"></div>
+        <span id="fontSizeDisplay" class="text-xs font-mono text-gray-400 min-w-[40px] text-center">16px</span>
+        <div class="h-4 w-[1px] bg-gray-600"></div>
+        <button onclick="changeFontSize(2)" class="text-gray-400 hover:text-white transition-colors p-2"><span class="text-xl font-bold italic">A</span></button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/epubjs/dist/epub.min.js"></script>
+
+    <script type="module">
+        import { auth } from './firebase-config.js';
+        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+        let book, rendition, currentBookId;
+        let currentSelection = null; 
+        const THEME_KEY = 'staant_theme_preference';
+        const FONT_SIZE_KEY = 'staant_font_size';
+        let currentFontSize = parseInt(localStorage.getItem(FONT_SIZE_KEY)) || 16;
+
+        onAuthStateChanged(auth, (user) => {
+            if (!user) {
+                window.location.href = 'login.html';
+                return;
+            }
+            initReader();
+        });
+
+        async function initReader() {
+            const cloudUrl = localStorage.getItem('currentEpubUrl');
+            const localId = localStorage.getItem('currentBookId');
+
+            if (cloudUrl) {
+                loadEpub(cloudUrl);
+            } else if (localId) {
+                const req = indexedDB.open('STAANT_DB', 2);
+                req.onsuccess = (e) => {
+                    const store = e.target.result.transaction(['books'], 'readonly').objectStore('books');
+                    store.get(parseInt(localId)).onsuccess = (ev) => {
+                        if(ev.target.result) loadEpub(ev.target.result.data, ev.target.result.title);
+                    };
+                };
+            } else {
+                window.location.href = 'index.html';
+            }
+        }
+
+        async function loadEpub(source, fallbackTitle = "Livro") {
+            book = ePub(source);
+            rendition = book.renderTo("viewer", { width: "100%", height: "100%", flow: "scrolled" });
+            
+            const meta = await book.loaded.metadata;
+            document.getElementById('bookTitle').textContent = meta.title || fallbackTitle;
+
+            await applyTheme(localStorage.getItem(THEME_KEY) || 'sepia', true);
+            registerHooks();
+            
+            const savedPos = localStorage.getItem(`pos_${document.getElementById('bookTitle').textContent}`);
+            await rendition.display(savedPos || undefined);
+
+            book.ready.then(() => book.locations.generate(1024)).then(() => {
+                updateUI();
+                renderAllHighlights(); 
+                renderHighlightsList();
+            });
+
+            document.getElementById('prevBtn').onclick = () => rendition.prev();
+            document.getElementById('nextBtn').onclick = () => rendition.next();
+            
+            const nav = await book.loaded.navigation;
+            const drop = document.getElementById('chaptersDropdown');
+            drop.innerHTML = nav.toc.map(c => `<option value="${c.href}">${c.label}</option>`).join('');
+            drop.onchange = (e) => rendition.display(e.target.value);
+        }
+
+        function registerHooks() {
+            const currentTheme = localStorage.getItem(THEME_KEY) || 'sepia';
+            const fontColor = currentTheme === 'dark' ? '#d1d5db' : (currentTheme === 'sepia' ? '#5b4636' : '#000000');
+            
+            rendition.hooks.content.register((contents) => {
+                contents.addStylesheetRules({
+                    "body": { 
+                        "color": `${fontColor} !important`, 
+                        "font-size": `${currentFontSize}px !important`, 
+                        "line-height": "1.6 !important", 
+                        "padding": "20px 40px !important",
+                        "background-color": "transparent !important"
+                    },
+                    ".hl-box": { 
+                        "background-color": "rgba(229, 9, 20, 0.3) !important", 
+                        "border-bottom": "2px solid var(--primary-red) !important",
+                        "cursor": "pointer !important"
+                    }
+                });
+
+                contents.document.addEventListener("mouseup", () => {
+                    const sel = contents.window.getSelection();
+                    const btn = document.getElementById('bookmarkBtn');
+                    const icon = document.getElementById('bookmarkIcon');
+                    
+                    if (!sel.isCollapsed && sel.toString().trim().length > 0) {
+                        const range = sel.getRangeAt(0);
+                        const cfi = new ePub.CFI(range, contents.cfiBase).toString();
+                        const text = sel.toString().trim();
+                        
+                        currentSelection = { cfi: cfi, text: text };
+                        btn.classList.add('enabled');
+
+                        const bookTitle = document.getElementById('bookTitle').textContent;
+                        const hls = JSON.parse(localStorage.getItem(`hl_${bookTitle}`)) || [];
+                        
+                        // Lógica de Detecção para alternar Bandeira/X
+                        const alreadyExists = hls.some(h => 
+                            h.cfi === cfi || h.text.includes(text) || text.includes(h.text)
+                        );
+
+                        if (alreadyExists) {
+                            icon.className = "fa-solid fa-xmark";
+                            btn.style.color = "#ff4444";
+                            // Sincroniza o CFI para garantir exclusão do registro original
+                            const existingHl = hls.find(h => h.text.includes(text) || text.includes(h.text));
+                            if(existingHl) currentSelection.cfi = existingHl.cfi;
+                        } else {
+                            icon.className = "fa-solid fa-bookmark";
+                            btn.style.color = "#ffeb3b";
+                        }
+                    } else {
+                        btn.classList.remove('enabled');
+                        icon.className = "fa-solid fa-bookmark";
+                        btn.style.color = "";
+                        currentSelection = null;
+                    }
+                });
+            });
+
+            rendition.on("relocated", (loc) => {
+                localStorage.setItem(`pos_${document.getElementById('bookTitle').textContent}`, loc.start.cfi);
+                updateUI();
+            });
+        }
+
+        async function handleBookmark() {
+            if (!currentSelection) return;
+            const bookTitle = document.getElementById('bookTitle').textContent;
+            const key = `hl_${bookTitle}`;
+            let hls = JSON.parse(localStorage.getItem(key)) || [];
+            
+            const existingIndex = hls.findIndex(h => 
+                h.cfi === currentSelection.cfi || h.text.includes(currentSelection.text) || currentSelection.text.includes(h.text)
+            );
+
+            if (existingIndex !== -1) {
+                // AÇÃO: REMOVER
+                removeHighlight(hls[existingIndex].cfi);
+            } else {
+                // AÇÃO: ADICIONAR
+                hls.push(currentSelection);
+                localStorage.setItem(key, JSON.stringify(hls));
+                rendition.annotations.add("highlight", currentSelection.cfi, {}, (e) => {
+                    removeHighlight(currentSelection.cfi);
+                }, "hl-box");
+            }
+
+            renderHighlightsList();
+            
+            const btn = document.getElementById('bookmarkBtn');
+            const icon = document.getElementById('bookmarkIcon');
+            btn.classList.remove('enabled');
+            icon.className = "fa-solid fa-bookmark";
+            btn.style.color = "";
+            currentSelection = null;
+        }
+
+        window.removeHighlight = (cfi) => {
+            const bookTitle = document.getElementById('bookTitle').textContent;
+            const key = `hl_${bookTitle}`;
+            let hls = JSON.parse(localStorage.getItem(key)) || [];
+            
+            hls = hls.filter(h => h.cfi !== cfi);
+            localStorage.setItem(key, JSON.stringify(hls));
+            rendition.annotations.remove(cfi, "highlight");
+            renderHighlightsList();
+        };
+
+        function renderHighlightsList() {
+            const drop = document.getElementById('highlightsDropdown');
+            const bookTitle = document.getElementById('bookTitle').textContent;
+            const hls = JSON.parse(localStorage.getItem(`hl_${bookTitle}`)) || [];
+            
+            drop.innerHTML = '<option value="" disabled selected>Destaques (' + hls.length + ')</option>';
+            hls.forEach((h) => {
+                const opt = document.createElement('option');
+                opt.value = h.cfi;
+                opt.textContent = h.text.substring(0, 20) + "...";
+                drop.appendChild(opt);
+            });
+
+            if(hls.length > 0) {
+                const clearOpt = document.createElement('option');
+                clearOpt.value = "CLEAR_ALL";
+                clearOpt.textContent = "🗑️ APAGAR TODOS";
+                drop.appendChild(clearOpt);
+            }
+        }
+
+        function renderAllHighlights() {
+            const bookTitle = document.getElementById('bookTitle').textContent;
+            const hls = JSON.parse(localStorage.getItem(`hl_${bookTitle}`)) || [];
+            hls.forEach(h => {
+                // Limpa antes de renderizar para evitar duplicidade
+                rendition.annotations.remove(h.cfi, "highlight");
+                rendition.annotations.add("highlight", h.cfi, {}, () => {
+                    removeHighlight(h.cfi);
+                }, "hl-box");
+            });
+        }
+
+        document.getElementById('highlightsDropdown').onchange = (e) => {
+            const val = e.target.value;
+            if (val === "CLEAR_ALL") {
+                if(confirm("Apagar todas as marcações?")) {
+                    localStorage.removeItem(`hl_${document.getElementById('bookTitle').textContent}`);
+                    location.reload();
+                }
+            } else rendition.display(val);
+        };
+
+        document.getElementById('bookmarkBtn').addEventListener('click', handleBookmark);
+
+        window.updateUI = () => {
+            if (!rendition || !rendition.location) return;
+            const loc = rendition.location;
+            let pct = 0;
+            let label = "PÁG --";
+
+            if (book.locations && book.locations.length() > 0) {
+                const current = book.locations.locationFromCfi(loc.start.cfi);
+                const total = book.locations.length();
+                pct = Math.floor((current / total) * 100);
+                label = `PÁG ${current} / ${total}`;
+            }
+
+            document.getElementById('pageCounter').textContent = label;
+            document.getElementById('progressBar').style.width = `${pct}%`;
+            document.getElementById('progressPercent').textContent = `${pct}%`;
+        };
+
+        window.applyTheme = async (t, init = false) => {
+            localStorage.setItem(THEME_KEY, t);
+            document.getElementById('viewer').style.backgroundColor = { sepia: '#f4ecd8', light: '#ffffff', dark: '#1a1a1a' }[t];
+            if (rendition && !init) {
+                const pos = rendition.currentLocation().start.cfi;
+                registerHooks();
+                await rendition.display(pos);
+                renderAllHighlights(); 
+            }
+        };
+
+// --- FUNÇÃO DE FONTE CORRIGIDA ---
+        window.changeFontSize = (delta) => {
+            currentFontSize = Math.max(12, Math.min(36, currentFontSize + delta));
+            localStorage.setItem(FONT_SIZE_KEY, currentFontSize);
+            
+            // Atualiza o display visual (o número na bolinha)
+            const display = document.getElementById('fontSizeDisplay');
+            if(display) display.textContent = `${currentFontSize}px`;
+
+            // Aplica a nova fonte diretamente no conteúdo do iframe sem recarregar tudo
+            if (rendition) {
+                rendition.getContents().forEach(contents => {
+                    contents.addStylesheetRules({
+                        "body": { "font-size": `${currentFontSize}px !important` }
+                    });
+                });
+            }
+        };
+
+        document.getElementById('fullscreenBtn').onclick = () => {
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+            else document.exitFullscreen();
+        };
+
+        document.getElementById('themeDropdown').onchange = (e) => applyTheme(e.target.value);
+    </script>
+</body>
+</html>

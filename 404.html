@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 - Página Não Encontrada | STAANT</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    
+    <style>
+        :root {
+            --primary-red: #e50914;
+            --dark-bg: #121212;
+            --text-color: #ffffff;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--dark-bg);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            text-align: center;
+            overflow: hidden;
+        }
+
+        .container {
+            max-width: 500px;
+            padding: 20px;
+        }
+
+        .error-code {
+            font-size: 8rem;
+            font-weight: 800;
+            margin: 0;
+            color: var(--primary-red);
+            line-height: 1;
+            letter-spacing: -5px;
+            animation: glitch 1s linear infinite alternate;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: #ccc;
+        }
+
+        p {
+            font-size: 1rem;
+            color: #888;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background-color: var(--primary-red);
+            color: white;
+            text-decoration: none;
+            padding: 12px 30px;
+            border-radius: 4px;
+            font-weight: bold;
+            transition: transform 0.2s, background-color 0.2s;
+        }
+
+        .back-btn:hover {
+            background-color: #f87171;
+            transform: scale(1.05);
+        }
+
+        /* Efeito sutil de glitch no 404 */
+        @keyframes glitch {
+            from { text-shadow: 2px 0 0 #ff00c1, -2px 0 0 #00fff9; }
+            to { text-shadow: -2px 0 0 #ff00c1, 2px 0 0 #00fff9; }
+        }
+
+        .logo {
+            font-size: 2rem;
+            font-weight: 900;
+            color: var(--primary-red);
+            margin-bottom: 50px;
+            display: block;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <a href="index.html" class="logo">STAANT</a>
+        
+        <div class="error-code">404</div>
+        <h1>Ops! Esse livro não está na estante.</h1>
+        <p>A página que você está procurando pode ter sido removida ou o endereço está incorreto.</p>
+        
+        <a href="index.html" class="back-btn">
+            <i class="fa-solid fa-house"></i>
+            Voltar para a Biblioteca
+        </a>
+    </div>
+
+</body>
+</html>

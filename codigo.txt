@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - STAANT</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary-red: #e50914; --dark-bg: #121212; --card-bg: #1f1f1f; --input-bg: #333333; --text-color: #fff; }
+        body { font-family: 'Roboto', sans-serif; background-color: var(--dark-bg); color: var(--text-color); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .container { background-color: var(--card-bg); padding: 40px; border-radius: 12px; width: 100%; max-width: 400px; text-align: center; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: none; background: var(--input-bg); color: white; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background: var(--primary-red); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .links { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
+        a { color: #ccc; text-decoration: none; font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2 style="color: var(--primary-red)">STAANT</h2>
+        <form id="loginForm">
+            <input type="email" id="email" placeholder="E-mail" required>
+            <input type="password" id="password" placeholder="Senha" required>
+            <button type="submit">Entrar</button>
+        </form>
+        <div class="links">
+            <a href="forgot-password.html">Esqueceu a senha?</a>
+            <a href="register.html">Criar nova conta</a>
+        </div>
+    </div>
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const savedUser = JSON.parse(localStorage.getItem('staant_user'));
+
+            if (savedUser && savedUser.email === email && savedUser.password === password) {
+                localStorage.setItem('staant_logged', 'true');
+                window.location.href = 'index.html';
+            } else {
+                alert('E-mail ou senha incorretos!');
+            }
+        });
+    </script>
+</body>
+</html>

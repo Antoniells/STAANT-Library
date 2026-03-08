@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <link rel="icon" type="image/png" href="https://img.icons8.com/ios-filled/50/e50914/book-stack.png">
+    <link rel="apple-touch-icon" href="https://img.icons8.com/ios-filled/150/e50914/book-stack.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - STAANT</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root { 
+            --primary-red: #e50914; 
+            --dark-bg: #121212; 
+            --card-bg: #1f1f1f; 
+            --input-bg: #333333; 
+            --text-color: #fff; 
+        }
+        body { 
+            font-family: 'Roboto', sans-serif; 
+            background-color: var(--dark-bg); 
+            color: var(--text-color); 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+            margin: 0; 
+        }
+        .container { 
+            background-color: var(--card-bg); 
+            padding: 40px; 
+            border-radius: 12px; 
+            width: 100%; 
+            max-width: 400px; 
+            text-align: center; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+
+        /* --- ESTILO DA ÁREA DE MENSAGENS --- */
+        #messageArea {
+            min-height: 20px;
+            margin-bottom: 20px;
+            font-size: 0.85rem;
+            border-radius: 8px;
+            padding: 12px;
+            display: none; /* Escondido por padrão */
+            font-weight: 500;
+        }
+        .error-msg {
+            background-color: rgba(229, 9, 20, 0.15);
+            color: #ff4d4d;
+            border: 1px solid var(--primary-red);
+        }
+        .success-msg {
+            background-color: rgba(34, 197, 94, 0.15);
+            color: #4ade80;
+            border: 1px solid #22c55e;
+        }
+
+        input { 
+            width: 100%; 
+            padding: 12px; 
+            margin: 10px 0; 
+            border-radius: 8px; 
+            border: 1px solid transparent; 
+            background: var(--input-bg); 
+            color: white; 
+            box-sizing: border-box; 
+            outline: none;
+        }
+        input:focus {
+            border-color: var(--primary-red);
+        }
+        button { 
+            width: 100%; 
+            padding: 12px; 
+            background: var(--primary-red); 
+            color: white; 
+            border: none; 
+            border-radius: 8px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            margin-top: 10px;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: #f87171;
+        }
+        button:disabled {
+            background: #555;
+            cursor: not-allowed;
+        }
+        .links { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
+        a { color: #ccc; text-decoration: none; font-size: 0.85rem; }
+        a:hover { text-decoration: underline; color: #fff; }
+    </style>
+</head>
+<body>
+    
+    <div class="container">
+        <h1 style="color: var(--primary-red); margin-bottom: 25px; font-size: 2.5rem; letter-spacing: 2px;">STAANT</h1>
+        
+        <div id="messageArea"></div>
+
+        <form id="loginForm">
+            <input type="email" id="email" placeholder="E-mail" required>
+            <input type="password" id="password" placeholder="Senha" required>
+            <button type="submit" id="btnEntrar">Entrar</button>
+        </form>
+        <div class="links">
+            <a href="forgot-password.html">Esqueceu a senha?</a>
+            <a href="register.html">Criar nova conta</a>
+        </div>
+    </div>
+
+    <script type="module">
+        import { auth } from './firebase-config.js';
+        import { 
+            signInWithEmailAndPassword, 
+            onAuthStateChanged 
+        } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+        const loginForm = document.getElementById('loginForm');
+        const btnEntrar = document.getElementById('btnEntrar');
+        const messageArea = document.getElementById('messageArea');
+
+        // Função de Pente Fino: Exibir mensagens na tela
+        function showMessage(text, type = 'error') {
+            messageArea.textContent = text;
+            messageArea.className = type === 'error' ? 'error-msg' : 'success-msg';
+            messageArea.style.display = 'block';
+        }
+
+        // Função de login integrada ao Firebase
+        async function realizarLogin(email, password) {
+            // Limpa mensagens anteriores e prepara interface
+            messageArea.style.display = 'none';
+            btnEntrar.disabled = true;
+            btnEntrar.textContent = "Carregando...";
+
+            try {
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+
+                const ADMIN_EMAIL = "admin@staant.com";
+                
+                const userData = {
+                    id: user.uid,
+                    email: user.email,
+                    name: user.displayName || user.email.split('@')[0],
+                    role: (user.email === ADMIN_EMAIL) ? "admin" : "user"
+                };
+
+                localStorage.setItem('staant_user', JSON.stringify(userData));
+                localStorage.setItem('staant_logged', 'true');
+
+                // Sucesso visual
+                showMessage("Acesso concedido! Entrando...", "success");
+
+                // Redirecionamento com leve delay para UX
+                setTimeout(() => {
+                    if (userData.role === 'admin') {
+                        window.location.href = 'admin.html';
+                    } else {
+                        window.location.href = 'index.html';
+                    }
+                }, 1200);
+
+            } catch (error) {
+                console.error("Erro de login:", error.code);
+                btnEntrar.disabled = false;
+                btnEntrar.textContent = "Entrar";
+                
+                let msg = "Erro ao tentar entrar.";
+                
+                // Mapeamento de erros amigáveis
+                if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+                    msg = "E-mail ou senha incorretos.";
+                } else if (error.code === 'auth/too-many-requests') {
+                    msg = "Muitas tentativas. Tente mais tarde.";
+                } else if (error.code === 'auth/network-request-failed') {
+                    msg = "Sem conexão com a internet.";
+                }
+                
+                showMessage(msg, "error");
+            }
+        }
+
+        // Listener do Formulário
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            realizarLogin(email, password);
+        });
+
+        // Verificação de persistência
+        onAuthStateChanged(auth, (user) => {
+            if (user && localStorage.getItem('staant_logged') === 'true') {
+                const savedUser = JSON.parse(localStorage.getItem('staant_user'));
+                if (savedUser && savedUser.role === 'admin') {
+                    window.location.href = 'admin.html';
+                } else {
+                    window.location.href = 'index.html';
+                }
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+{
+  "name": "STAANT - Biblioteca Digital",
+  "short_name": "STAANT",
+  "description": "Sua biblioteca digital offline de arquivos EPUB.",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#121212",
+  "theme_color": "#e50914",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://img.icons8.com/ios-filled/192/e50914/book-stack.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://img.icons8.com/ios-filled/512/e50914/book-stack.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
+
