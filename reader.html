@@ -4,7 +4,7 @@
     <link rel="icon" type="image/png" href="https://img.icons8.com/ios-filled/50/e50914/book-stack.png">
     <link rel="apple-touch-icon" href="https://img.icons8.com/ios-filled/150/e50914/book-stack.png">
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Leitor Profissional - STAANT</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
@@ -32,6 +32,9 @@
             padding-top: 120px; background-color: var(--dark-bg);
             overflow-y: auto; height: 100vh;
         }
+        #reader-container::-webkit-scrollbar {
+    display: none; /* Esconde no Chrome/Safari/Celulares */
+}
 
         :fullscreen #reader-container { padding-top: 20px !important; }
 
@@ -52,6 +55,7 @@
             background-color: white;
             box-shadow: 0 0 40px rgba(0,0,0,0.8);
             position: relative; min-height: 100%;
+            padding-bottom: 15px;
         }
 
         .nav-button { background: var(--primary-red); display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
@@ -140,6 +144,7 @@
             }
             initReader();
         });
+        
 
         async function initReader() {
             const cloudUrl = localStorage.getItem('currentEpubUrl');
@@ -190,8 +195,12 @@
 
         function registerHooks() {
             const currentTheme = localStorage.getItem(THEME_KEY) || 'sepia';
-            const fontColor = currentTheme === 'dark' ? '#d1d5db' : (currentTheme === 'sepia' ? '#5b4636' : '#000000');
-            
+            // CORES DAS LETRAS
+            const fontColor = {
+                    sepia: '#5b4636', // Marrom suave (Foto 1)
+                    dark: '#5b4636',  // Cinza claro (Foto 2)
+                    light: '#5b4636'
+                }[currentTheme];
             rendition.hooks.content.register((contents) => {
                 contents.addStylesheetRules({
                     "body": { 
@@ -208,6 +217,49 @@
                     }
                 });
 
+                contents.document.addEventListener("click", (e) => {
+        const width = contents.window.innerWidth;
+        const x = e.clientX;
+
+        // Se clicar nos primeiros 20% da tela (Esquerda) -> Volta
+        if (x < width * 0.2) {
+            rendition.prev();
+        } 
+        // Se clicar nos últimos 20% da tela (Direita) -> Avança
+        else if (x > width * 0.8) {
+            rendition.next();
+        }
+        // Os 60% do meio ficam livres para seleção de texto ou menu
+    });
+
+    contents.addStylesheetRules({
+        "body": { 
+            "cursor": "pointer !important", 
+            "-webkit-tap-highlight-color": "transparent !important" 
+        },
+        // Garante que links ou imagens não "roubem" o clique de navegação
+        "a, img": { "pointer-events": "auto !important" } 
+    });
+
+    // 2. ESCUTA DE CLIQUE REFORÇADA
+    // O 'true' no final ativa a fase de captura (pega o clique antes de qualquer div interna)
+    contents.document.addEventListener("click", (e) => {
+        // Se o usuário estiver selecionando texto, não vira a página
+        const selection = contents.window.getSelection();
+        if (!selection.isCollapsed) return;
+
+        const width = contents.window.innerWidth;
+        const x = e.clientX;
+
+        // Zonas de Toque (20% laterais)
+        if (x < width * 0.2) {
+            e.preventDefault();
+            rendition.prev();
+        } else if (x > width * 0.8) {
+            e.preventDefault();
+            rendition.next();
+        }
+    }, true);
                 contents.document.addEventListener("mouseup", () => {
                     const sel = contents.window.getSelection();
                     const btn = document.getElementById('bookmarkBtn');
@@ -369,6 +421,9 @@
                 await rendition.display(pos);
                 renderAllHighlights(); 
             }
+            // No seu reader.html, ao carregar o livro:
+const savedTheme = localStorage.getItem('staant_theme') || 'dark';
+applyTheme(savedTheme); // Garante que comece com o que foi escolhido nas configs
         };
 
 // --- FUNÇÃO DE FONTE CORRIGIDA ---

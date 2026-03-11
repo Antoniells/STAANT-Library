@@ -1,0 +1,5 @@
+Criar o Painel de Administrador para gerenciar outros usuários;
+
+Implementar um sistema de Modo Offline para ler sem internet;
+
+Ou até adicionar uma seção de Comentários/Resenhas nos livros

@@ -159,7 +159,7 @@
                 await setDoc(doc(db, "users", user.uid), {
                     uid: user.uid,
                     name: name,
-                    email: email,
+                    email: email.toLowerCase().trim(),
                     role: "user",
                     createdAt: new Date()
                 });

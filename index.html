@@ -45,6 +45,70 @@
             color: var(--light-text);
         }
 
+/* --- MODAL DE CONFIGURAÇÕES ESTILIZADO --- */
+#settingsModal {
+    display: none; /* Começa escondido */
+    position: fixed;
+    inset: 0; /* Ocupa a tela toda */
+    z-index: 9999; /* Fica na frente de TUDO */
+    background: rgba(0, 0, 0, 0.85); /* Fundo escuro semi-transparente */
+    backdrop-filter: blur(8px); /* Efeito de vidro embaçado ao fundo */
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+/* Container do Modal */
+.settings-content {
+    background: #121212; /* Fundo idêntico ao menu lateral */
+    width: 90%;
+    max-width: 380px;
+    border-radius: 32px;
+    border: 1px solid #1f1f1f;
+    padding: 30px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+}
+
+/* Cards de Tema */
+.theme-card {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 16px;
+    border-radius: 18px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+}
+
+.theme-card:active {
+    transform: scale(0.98);
+}
+
+/* Destaque para o tema selecionado (Opcional: você pode adicionar via JS) */
+.theme-card.selected {
+    border-color: #e50914;
+}
+
+/* Estilo dos Botões de Tema dentro do Modal */
+.theme-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.theme-btn {
+    height: 45px;
+    border-radius: 12px;
+    border: 1px solid #444;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+}
         /* --- LOADING OVERLAY --- */
         #loadingOverlay {
             position: fixed;
@@ -182,6 +246,214 @@
         .admin-only-item { display: none; border: 1px solid rgba(229, 9, 20, 0.3); color: var(--primary-red); }
         #sidebarOverlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; z-index: 1999; backdrop-filter: blur(2px); }
 
+.settings-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.settings-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 20px;
+    background: #2a2a2a; /* Cor de fundo do item na foto */
+    border-radius: 16px;
+    color: white;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.settings-item:hover {
+    background: #333;
+}
+
+.item-left {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.item-left i {
+    width: 25px;
+    text-align: center;
+    color: white;
+}
+
+.theme-sub-btn {
+    width: 100%;
+    padding: 14px;
+    border-radius: 12px; /* Cantos arredondados como os itens principais */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: #2a2a2a; /* Cor cinza escuro da lista */
+    color: #9ca3af;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s ease;
+}
+.theme-sub-btn:hover {
+    background-color: #333;
+    color: white;
+    border-color: rgba(255, 255, 255, 0.2);
+}
+/* Feedback visual de clique */
+.theme-sub-btn:active {
+    transform: scale(0.97);
+}
+
+/* Estilo específico para cada cor de tema (Opcional, dá um charme extra) */
+.theme-sub-btn[onclick*="dark"] { border-left: 4px solid #444; }
+.theme-sub-btn[onclick*="sepia"] { border-left: 4px solid #d2c29d; }
+.theme-sub-btn[onclick*="light"] { border-left: 4px solid #fff; }
+
+
+
+/* Overlay para centralizar o modal na tela */
+.settings-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    align-items: center;
+    justify-content: center;
+}
+
+/* O container do sub-menu com animação de expansão */
+.submenu-container {
+    padding-left: 3rem;
+    padding-right: 1rem;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 0.75rem;
+    margin-top: 0.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    overflow: hidden;
+    transition: all 0.3s ease-in-out;
+}
+
+/* Estilo do botão de salvar baseado no design da STAANT */
+.save-settings-btn {
+    width: 100%;
+    margin-top: 2rem;
+    background-color: #e50914;
+    color: white;
+    padding: 1rem;
+    border-radius: 1rem;
+    font-weight: bold;
+    transition: all 0.2s;
+}
+
+.save-settings-btn:active {
+    transform: scale(0.95);
+}
+
+/* --- SIDEBAR DESIGN (PENTE FINO) --- */
+.sidebar-modern {
+    background-color: #121212; /* Fundo idêntico à imagem */
+    width: 280px;
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    left: -280px; /* Começa escondida */
+    z-index: 1000;
+    transition: left 0.3s ease;
+    border-right: 1px solid #1f1f1f;
+    padding: 20px 0;
+}
+
+.sidebar-modern.active {
+    left: 0;
+}
+
+.menu-title {
+    color: #e50914; /* Vermelho do Projeto Tixan */
+    font-size: 1.25rem;
+    font-weight: bold;
+    padding: 0 24px;
+    margin-bottom: 20px;
+}
+
+.sidebar-btn {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    width: 100%;
+    padding: 16px 24px;
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.sidebar-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.sidebar-btn i {
+    font-size: 1.2rem;
+    color: white; /* Ícones brancos como na foto */
+}
+
+.close-sidebar {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    color: white;
+    font-size: 1.5rem;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+}
+
+/* Linhas de seleção de tema dentro do menu expandido */
+.theme-select-row {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 20px;
+    color: #bbb;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: background 0.2s;
+}
+
+.theme-select-row:hover {
+    background: rgba(255,255,255,0.05);
+    color: white;
+}
+
+/* Botão de Salvar Premium */
+.save-settings-btn {
+    width: 100%;
+    margin-top: 25px;
+    background: #e50914; /* Vermelho Tixan */
+    color: white;
+    padding: 16px;
+    border-radius: 16px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    box-shadow: 0 10px 20px rgba(229, 9, 20, 0.2);
+    transition: all 0.2s;
+}
+
+.save-settings-btn:active {
+    transform: scale(0.96);
+    background: #c40812;
+}
         #mobileSearchRow { position: fixed; top: 70px; left: 0; width: 100%; z-index: 999; display: none; }
         #mobileSearchRow.active { display: block; padding: 0 20px; }
 
@@ -233,9 +505,102 @@
             .book-card-modern { height: 220px; }
             .hero-content h2 { font-size: 1.8rem; }
         }
+        .submenu-wrapper {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 12px;
+}
+.submenu-inner {
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px; /* Espaço entre os botões de tema */
+}
     </style>
 </head>
 <body>
+
+<div id="sidebar" class="sidebar-modern">
+    <div class="sidebar-header">
+        <h2 class="menu-title">Menu</h2>
+        <button onclick="toggleSidebar()" class="close-sidebar">&times;</button>
+    </div>
+    
+    <div class="sidebar-content">
+        <button onclick="openAddModal()" class="sidebar-btn">
+            <i class="fa-solid fa-circle-plus"></i>
+            <span>Adicionar Livro</span>
+        </button>
+
+        <button onclick="openSettingsModal()" class="sidebar-btn">
+            <i class="fa-solid fa-gear"></i>
+            <span>Configurações</span>
+        </button>
+
+        <button onclick="logout()" class="sidebar-btn">
+            <i class="fa-solid fa-circle-arrow-right"></i>
+            <span>Sair da Conta</span>
+        </button>
+    </div>
+</div>
+
+<div id="settingsModal" class="settings-modal-overlay">
+    <div class="settings-content">
+        <div class="flex justify-between items-center mb-6 px-2">
+            <h2 class="text-xl font-bold text-white">Configurações</h2>
+        </div>
+
+        <div class="settings-list">
+            <div class="settings-item opacity-50">
+                <div class="item-left">
+                    <i class="fa-solid fa-user"></i>
+                    <span>Perfil</span>
+                </div>
+                <i class="fa-solid fa-chevron-right text-xs"></i>
+            </div>
+
+            <div class="settings-item" onclick="toggleSubMenu('theme-options')">
+                <div class="item-left">
+                    <i class="fa-solid fa-moon"></i>
+                    <span>Temas</span>
+                </div>
+                <i id="theme-arrow" class="fa-solid fa-chevron-right text-xs transition-transform duration-300"></i>
+            </div>
+
+            <div id="theme-options" class="submenu-wrapper">
+                <div class="submenu-inner">
+                    <button onclick="applyTheme('dark')" class="theme-sub-btn">Escuro</button>
+                    <button onclick="applyTheme('sepia')" class="theme-sub-btn">Sépia</button>
+                    <button onclick="applyTheme('light')" class="theme-sub-btn">Claro</button>
+                </div>
+            </div>
+
+            <div class="settings-item opacity-50">
+                <div class="item-left">
+                    <i class="fa-solid fa-book-open"></i>
+                    <span>Leitura</span>
+                </div>
+                <i class="fa-solid fa-chevron-right text-xs"></i>
+            </div>
+
+            <div class="settings-item opacity-50">
+                <div class="item-left">
+                    <i class="fa-solid fa-headset"></i>
+                    <span>Ajuda</span>
+                </div>
+                <i class="fa-solid fa-chevron-right text-xs"></i>
+            </div>
+        </div>
+
+        <button onclick="closeSettingsModal()" class="save-settings-btn">
+            CONFIRMAR ALTERAÇÕES
+        </button>
+    </div>
+</div>
+</div>  
+</div>
 
     <div id="loadingOverlay">
         <div class="loading-content">
@@ -347,7 +712,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/epubjs/dist/epub.min.js"></script>
 
-    <script type="module">
+<script type="module">
         import { auth, db } from './firebase-config.js';
         import { supabase } from './supabase-config.js';
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
@@ -356,6 +721,59 @@
         let currentCoverBase64 = null;
         let currentEpubArrayBuffer = null;
 
+
+window.toggleSubMenu = (id) => {
+    const menu = document.getElementById(id);
+    const arrow = document.getElementById('theme-arrow');
+    
+    // Se o menu estiver fechado (altura 0), nós abrimos
+    if (!menu.style.maxHeight || menu.style.maxHeight === "0px") {
+        menu.style.maxHeight = menu.scrollHeight + "px"; // Abre até o tamanho do conteúdo
+        arrow.style.transform = 'rotate(90deg)';
+    } else {
+        menu.style.maxHeight = "0px"; // Esconde tudo
+        arrow.style.transform = 'rotate(0deg)';
+    }
+};
+
+    window.openSettingsModal = () => {
+        // Fecha a sidebar antes de abrir as configs para evitar bugs visuais
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebarOverlay');
+        if(sidebar.classList.contains('active')) {
+            sidebar.classList.remove('active');
+            overlay.style.display = 'none';
+        }
+        document.getElementById('settingsModal').style.display = 'flex';
+    };
+
+    window.closeSettingsModal = () => {
+        document.getElementById('settingsModal').style.display = 'none';
+        // Se houver um menu de temas aberto, vamos fechá-lo para a próxima vez
+        const menu = document.getElementById('theme-options');
+        const arrow = document.getElementById('theme-arrow');
+        menu.classList.add('hidden');
+        arrow.style.transform = 'rotate(0deg)';
+    };
+// --- PENTE FINO: FUNCIONALIDADE DE TEMAS ---
+window.applyTheme = (theme) => {
+    // 1. Salva a preferência para o reader.html ler depois
+    localStorage.setItem('staant_theme', theme);
+
+    // 2. (Opcional) Feedback visual imediato nos botões do modal
+    const buttons = document.querySelectorAll('.theme-sub-btn');
+    buttons.forEach(btn => {
+        btn.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+        btn.style.color = '#9ca3af';
+    });
+
+    // Destaca o botão clicado
+    const selectedBtn = event.currentTarget;
+    selectedBtn.style.borderColor = 'var(--primary-red)';
+    selectedBtn.style.color = '#fff';
+
+    console.log(`Tema ${theme} selecionado e salvo!`);
+};
         // --- INTERFACE (Globais) ---
         window.toggleSidebar = () => {
             const side = document.getElementById('sidebar');
@@ -388,7 +806,15 @@
             localStorage.clear();
             window.location.href = 'login.html';
         };
+window.openSettingsModal = () => {
+    // Fecha a sidebar se estiver aberta
+    if(document.getElementById('sidebar').classList.contains('active')) toggleSidebar();
+    document.getElementById('settingsModal').style.display = 'flex';
+};
 
+window.closeSettingsModal = () => {
+    document.getElementById('settingsModal').style.display = 'none';
+};
         // --- SISTEMA (NUVEM TOTAL) ---
         onAuthStateChanged(auth, async (user) => {
             if (!user) {
@@ -411,6 +837,8 @@
         // --- RENDERIZAR DA NUVEM (FIRESTORE) ---
         window.renderList = async (filter = '') => {
             const currentUser = JSON.parse(localStorage.getItem('staant_user'));
+            if (!currentUser) return;
+
             const bookList = document.getElementById('bookList');
             
             try {
@@ -425,8 +853,14 @@
                 }
 
                 const querySnapshot = await getDocs(q);
-                bookList.innerHTML = '';
                 
+                // --- ATUALIZAR CONTADOR (PENTE FINO) ---
+                const counterDisplay = document.getElementById('storedBooksCount');
+                if (counterDisplay) {
+                    counterDisplay.textContent = querySnapshot.size;
+                }
+
+                bookList.innerHTML = '';
                 const term = filter.toLowerCase();
                 let firstBook = null;
 
@@ -472,11 +906,9 @@
         window.deleteBookCloud = async (id, path) => {
             if(confirm("Excluir permanentemente da nuvem?")) {
                 try {
-                    // 1. Deleta no Supabase Storage
                     if (path) {
                         await supabase.storage.from('biblioteca').remove([path]);
                     }
-                    // 2. Deleta no Firebase Firestore
                     await deleteDoc(doc(db, "books", id));
                     renderList();
                 } catch (e) { console.error(e); }
@@ -511,46 +943,62 @@
             }
         }
 
-        // --- UPLOAD HÍBRIDO (SUPABASE + FIREBASE) ---
+        // --- FUNÇÃO DE COMPRESSÃO (PENTE FINO) ---
+        async function compressCover(base64Str) {
+            if (!base64Str) return "";
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.src = base64Str;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 250; 
+                    const scaleSize = MAX_WIDTH / img.width;
+                    canvas.width = MAX_WIDTH;
+                    canvas.height = img.height * scaleSize;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    resolve(canvas.toDataURL('image/jpeg', 0.4));
+                };
+                img.onerror = () => resolve("");
+                setTimeout(() => resolve(""), 5000);
+            });
+        }
+
+        // --- UPLOAD HÍBRIDO ---
         document.getElementById('bookForm').onsubmit = async (e) => {
             e.preventDefault();
             if (!currentEpubArrayBuffer) return alert("Processando arquivo...");
             
             const btn = document.getElementById('submitBookBtn');
-            btn.disabled = true; btn.textContent = "Sincronizando com a Nuvem...";
+            btn.disabled = true; 
+            btn.textContent = "Sincronizando...";
 
             const user = JSON.parse(localStorage.getItem('staant_user'));
             const title = document.getElementById('bookTitleInput').value;
             const author = document.getElementById('bookAuthorInput').value;
 
             try {
-                // 1. Upload para o Supabase Storage
-                const storagePath = `${user.id}/${Date.now()}_${title.replace(/\s+/g, '_')}.epub`;
+                let optimizedCover = await compressCover(currentCoverBase64);
+                if (optimizedCover.length > 500000) optimizedCover = "";
+
+                // Limpeza de nome para Supabase
+                const cleanTitle = title.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
+                const storagePath = `${user.id}/${Date.now()}_${cleanTitle}.epub`;
                 const fileBlob = new Blob([currentEpubArrayBuffer], { type: 'application/epub+zip' });
 
-                const { data, error } = await supabase.storage
-                    .from('biblioteca')
-                    .upload(storagePath, fileBlob);
-
+                const { error } = await supabase.storage.from('biblioteca').upload(storagePath, fileBlob);
                 if (error) throw error;
 
-                // 2. Pega URL pública
-                const { data: urlData } = supabase.storage
-                    .from('biblioteca')
-                    .getPublicUrl(storagePath);
+                const { data: urlData } = supabase.storage.from('biblioteca').getPublicUrl(storagePath);
                 
-                const epubUrl = urlData.publicUrl;
-
-                // 3. Salva no Firebase Firestore
                 await addDoc(collection(db, "books"), {
                     userId: user.id,
-                    userEmail: user.email,
                     title, 
                     author,
                     description: document.getElementById('bookDescriptionInput').value,
-                    epubUrl: epubUrl,
-                    storagePath: storagePath, // Guardamos para poder deletar depois
-                    cover: currentCoverBase64,
+                    epubUrl: urlData.publicUrl,
+                    storagePath: storagePath,
+                    cover: optimizedCover, 
                     timestamp: Date.now()
                 });
 
@@ -558,7 +1006,7 @@
                 renderList();
             } catch (err) {
                 console.error(err);
-                alert("Erro ao subir para a nuvem. Verifique o console.");
+                alert("Erro ao subir para a nuvem.");
             } finally {
                 btn.disabled = false;
                 btn.textContent = "Adicionar";
@@ -592,9 +1040,10 @@
         };
 
         document.getElementById('searchInput').oninput = (e) => renderList(e.target.value);
+        
         if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js');
-  }
+            navigator.serviceWorker.register('sw.js');
+        }
     </script>
 </body>
 </html>

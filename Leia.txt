@@ -1,22 +1,14 @@
-Sempre que você quiser mudar uma cor, consertar um bug ou adicionar uma função nova, o "pente fino" do processo é este:
+O Fluxo de Trabalho a partir de agora
+Agora, sua rotina de mestre será:
 
-1. O Ciclo de Atualização
-Altere o código: Abra o VS Code, mude o que precisar e salve o arquivo (Ctrl + S).
+Alterou o código?
 
-Teste Local: Antes de subir, você pode rodar o comando firebase serve. Ele cria um link temporário só para você ver se ficou bom antes de mandar para o mundo.
+Dentro da pasta: cmd
 
-Suba a Versão: No terminal, digite firebase deploy.
+git add .
 
-2. O que acontece nos bastidores?
-O Firebase é inteligente. Quando você roda o deploy novamente, ele:
+git commit -m "Explique o que mudou"
 
-Compara os arquivos: Ele só faz o upload do que você realmente mudou, o que torna o processo muito rápido.
+git push (Para atualizar o GitHub)
 
-Cria um Histórico (Versões): Se você fizer uma atualização e o site parar de funcionar, você pode ir no Console do Firebase e clicar em "Rollback". O site volta para a versão anterior em 1 segundo!
-
-Limpa o Cache: Ele avisa aos navegadores dos seus usuários que existe um código novo, garantindo que ninguém veja a versão antiga com erro.
-
-💡 Dica de Mestre para o Projeto Tixan:
-Sempre que você for fazer uma mudança grande (como mexer na lógica de login), faça uma cópia da pasta ou use o Git. Assim, o seu código fica blindado contra acidentes.
-
-Agora que a STAANT está no ar, qual a primeira grande atualização que você tem em mente? Quer que eu já prepare o código de alguma função nova para você estrear esse fluxo de deploy?
+firebase deploy (Para atualizar o site no ar)
