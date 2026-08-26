@@ -5,44 +5,40 @@
     <link rel="apple-touch-icon" href="https://img.icons8.com/ios-filled/150/e50914/book-stack.png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Leitor Profissional - STAANT</title>
+    <title>Leitor - STAANT</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+    </script>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-    
+
     <style>
         :root {
             --primary-red: #e50914;
             --dark-bg: #121212;
-            --card-bg: #1f1f1f;
             --border-gray: #374151;
-            --bookmark-yellow: #ffeb3b; 
         }
 
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--dark-bg);
+            color: #fff;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        /* ── HEADERS FIXOS ── */
         #ui-wrapper {
-            position: fixed; top: 0; left: 0; width: 100%; z-index: 100;
+            position: fixed; top: 0; left: 0;
+            width: 100%; z-index: 200;
             transition: transform 0.3s ease, opacity 0.3s ease;
         }
-
         :fullscreen #ui-wrapper { transform: translateY(-90%); opacity: 0; }
         :fullscreen #ui-wrapper:hover { transform: translateY(0); opacity: 1; }
-
-        #reader-container {
-            flex: 1; display: flex; justify-content: center; align-items: flex-start; 
-            padding-top: 120px; background-color: var(--dark-bg);
-            overflow-y: auto; height: 100vh;
-        }
-        #reader-container::-webkit-scrollbar {
-    display: none; /* Esconde no Chrome/Safari/Celulares */
-}
-
-        :fullscreen #reader-container { padding-top: 20px !important; }
-
-        body { 
-            font-family: 'Roboto', sans-serif; 
-            background-color: var(--dark-bg) !important;
-            color: #fff; margin: 0; overflow: hidden;
-        }
 
         .glass-header {
             background: rgba(31, 31, 31, 0.98);
@@ -50,47 +46,159 @@
             border-bottom: 1px solid var(--border-gray);
         }
 
-        #viewer {
-            width: 100%; max-width: 800px;
-            background-color: white;
-            box-shadow: 0 0 40px rgba(0,0,0,0.8);
-            position: relative; min-height: 100%;
-            padding-bottom: 15px;
+        /* ── ÁREA DE LEITURA — modo páginas ── */
+        #reader-container {
+            position: fixed;
+            top: 112px; left: 0;
+            width: 100%;
+            height: calc(100vh - 112px);
+            overflow: hidden;
+            background-color: var(--dark-bg);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+        :fullscreen #reader-container { top: 0; height: 100vh; }
+
+        /* ── ÁREA DE LEITURA — modo scroll ── */
+        #reader-container.scroll-mode {
+            overflow-y: auto;
+            overflow-x: hidden;
         }
 
-        .nav-button { background: var(--primary-red); display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+        /* viewer — modo páginas */
+        #viewer {
+            width: 100%;
+            max-width: 800px;
+            height: 100%;
+            background-color: white;
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
+            position: relative;
+        }
+        #viewer iframe {
+            width: 100% !important;
+            height: 100% !important;
+            display: block !important;
+            border: none !important;
+        }
+
+        /* ── SCROLL VIEWER — renderização direta no DOM, sem iframe ── */
+        #scroll-viewer {
+            display: none;
+            width: 100%;
+            max-width: 800px;
+            padding: 24px 40px 100px;
+            font-family: Georgia, 'Times New Roman', serif;
+            font-size: 16px;
+            line-height: 1.75;
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
+        }
+        #scroll-viewer.active { display: block; }
+
+        /* Temas */
+        #scroll-viewer.theme-sepia { background: #f4ecd8; color: #5b4636; }
+        #scroll-viewer.theme-dark  { background: #1a1a1a; color: #e0e0e0; }
+        #scroll-viewer.theme-light { background: #ffffff; color: #1a1a1a; }
+
+        #scroll-viewer h1, #scroll-viewer h2, #scroll-viewer h3 { margin-top: 2em; margin-bottom: 0.5em; }
+        #scroll-viewer p { margin: 0 0 1em; }
+        #scroll-viewer img { max-width: 100%; height: auto; display: block; margin: 1em auto; }
+        #scroll-viewer a { color: inherit; }
+
+        .chapter-sep {
+            border: none;
+            border-top: 1px solid rgba(128,128,128,0.25);
+            margin: 3em 0;
+        }
+
+        /* Loading no centro do container */
+        #scroll-loading {
+            display: none;
+            width: 100%;
+            text-align: center;
+            padding: 60px 20px;
+            color: #888;
+            font-size: 0.9rem;
+        }
+        #scroll-loading.active { display: block; }
+
+        /* Overlay de toque */
+        #touch-overlay {
+            position: absolute;
+            inset: 0; z-index: 10;
+            background: transparent;
+            touch-action: none;
+        }
+
+        .tap-feedback {
+            position: fixed;
+            width: 56px; height: 56px; border-radius: 50%;
+            background: rgba(229, 9, 20, 0.2);
+            pointer-events: none;
+            transform: translate(-50%, -50%) scale(0);
+            transition: transform 0.2s ease, opacity 0.3s ease;
+            z-index: 300; opacity: 0;
+        }
+        .tap-feedback.show { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+
+        /* Transição de página */
+        #viewer { position: relative; }
+        #page-transition {
+            position: absolute; inset: 0; z-index: 20;
+            pointer-events: none; overflow: hidden; display: none;
+        }
+        #page-slide { position: absolute; inset: 0; will-change: transform, opacity; }
+
+        /* Controles */
+        .nav-button {
+            background: var(--primary-red);
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s;
+        }
         .nav-button:hover { background: #f87171; transform: scale(1.05); }
-        .control-select { background: #2d2d2d; border: 1px solid #444; border-radius: 6px; padding: 4px 8px; font-size: 0.85rem; color: #ccc; outline: none; }
+
+        .control-select {
+            background: #2d2d2d; border: 1px solid #444;
+            border-radius: 6px; padding: 4px 8px;
+            font-size: 0.85rem; color: #ccc; outline: none;
+        }
 
         #bookmarkBtn { opacity: 0.5; pointer-events: none; }
         #bookmarkBtn.enabled { opacity: 1; pointer-events: auto; }
     </style>
 </head>
 <body>
-    
+
+    <div id="tapFeedback" class="tap-feedback"></div>
+
     <div id="ui-wrapper">
         <header class="glass-header w-full h-14 flex items-center px-4 justify-between">
             <div class="flex items-center gap-4">
                 <button onclick="window.location.href='index.html'" class="text-gray-400 hover:text-white transition-colors">
                     <i class="fa-solid fa-arrow-left text-xl"></i>
                 </button>
-                <h1 id="bookTitle" class="text-sm font-bold uppercase tracking-widest text-gray-300 truncate max-w-md text-left">CARREGANDO...</h1>
+                <h1 id="bookTitle" class="text-sm font-bold uppercase tracking-widest text-gray-300 truncate max-w-xs md:max-w-md text-left">CARREGANDO...</h1>
             </div>
             <div class="flex items-center gap-3">
                 <button id="bookmarkBtn" class="text-gray-500 text-lg transition-all">
                     <i id="bookmarkIcon" class="fa-solid fa-bookmark"></i>
                 </button>
-                <button id="fullscreenBtn" class="text-gray-400 hover:text-red-500"><i class="fa-solid fa-expand"></i></button>
+                <button id="fullscreenBtn" class="text-gray-400 hover:text-red-500">
+                    <i id="fullscreenIcon" class="fa-solid fa-expand"></i>
+                </button>
             </div>
         </header>
 
-        <nav id="controls" class="glass-header w-full h-14 flex items-center px-4 justify-between">
+        <nav class="glass-header w-full h-14 flex items-center px-4 justify-between">
             <div class="flex items-center gap-2">
-                <button id="prevBtn" class="nav-button w-8 h-8 rounded-full text-white"><i class="fa-solid fa-chevron-left text-xs"></i></button>
+                <button id="prevBtn" class="nav-button w-8 h-8 rounded-full text-white">
+                    <i class="fa-solid fa-chevron-left text-xs"></i>
+                </button>
                 <span id="pageCounter" class="text-[10px] font-mono text-gray-400 w-24 text-center">Iniciando...</span>
-                <button id="nextBtn" class="nav-button w-8 h-8 rounded-full text-white"><i class="fa-solid fa-chevron-right text-xs"></i></button>
+                <button id="nextBtn" class="nav-button w-8 h-8 rounded-full text-white">
+                    <i class="fa-solid fa-chevron-right text-xs"></i>
+                </button>
             </div>
-
             <div class="hidden md:flex items-center gap-4">
                 <select id="chaptersDropdown" class="control-select w-40"></select>
                 <select id="highlightsDropdown" class="control-select w-40">
@@ -98,30 +206,47 @@
                 </select>
                 <select id="themeDropdown" class="control-select">
                     <option value="dark">Escuro</option>
-                    <option value="sepia" selected>Sépia</option>
+                    <option value="sepia">Sépia</option>
                     <option value="light">Claro</option>
                 </select>
             </div>
-
             <div class="flex items-center gap-3">
                 <div class="w-20 h-1 bg-gray-700 rounded-full overflow-hidden">
-                    <div id="progressBar" class="bg-red-600 h-full w-0 transition-all"></div>
+                    <div id="progressBar" class="bg-red-600 h-full w-0 transition-all duration-300"></div>
                 </div>
                 <span id="progressPercent" class="text-[10px] text-red-500 font-bold">0%</span>
             </div>
         </nav>
     </div>
 
-    <main id="reader-container">
+    <div id="reader-container">
+        <!-- Modo páginas -->
         <div id="viewer"></div>
-    </main>
+        <div id="page-transition"><div id="page-slide"></div></div>
+        <div id="touch-overlay"></div>
+        <!-- Modo scroll -->
+        <div id="scroll-loading">
+            <div style="width:32px;height:32px;border:3px solid #333;border-top-color:#e50914;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px;"></div>
+            Carregando livro completo...
+        </div>
+        <div id="scroll-viewer"></div>
+        <div id="pdf-viewer" style="display: none; width: 100%; height: 100%; overflow-y: auto; justify-content: center; align-items: flex-start; padding: 20px;">
+            <canvas id="pdf-canvas" style="max-width: 100%; box-shadow: 0 0 20px rgba(0,0,0,0.5); background-color: white;"></canvas>
+        </div>
+    </div>
 
-    <div id="font-control" class="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 bg-[#1f1f1f]/90 backdrop-blur-md px-6 py-3 rounded-2xl border border-gray-700 flex items-center gap-6 shadow-2xl opacity-40 hover:opacity-100 transition-opacity">
-        <button onclick="changeFontSize(-2)" class="text-gray-400 hover:text-white transition-colors p-2"><span class="text-sm font-bold italic">A</span></button>
+    <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+
+    <div class="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 bg-[#1f1f1f]/90 backdrop-blur-md px-6 py-3 rounded-2xl border border-gray-700 flex items-center gap-6 shadow-2xl opacity-40 hover:opacity-100 transition-opacity">
+        <button onclick="changeFontSize(-2)" class="text-gray-400 hover:text-white transition-colors p-2">
+            <span class="text-sm font-bold italic">A</span>
+        </button>
         <div class="h-4 w-[1px] bg-gray-600"></div>
         <span id="fontSizeDisplay" class="text-xs font-mono text-gray-400 min-w-[40px] text-center">16px</span>
         <div class="h-4 w-[1px] bg-gray-600"></div>
-        <button onclick="changeFontSize(2)" class="text-gray-400 hover:text-white transition-colors p-2"><span class="text-xl font-bold italic">A</span></button>
+        <button onclick="changeFontSize(2)" class="text-gray-400 hover:text-white transition-colors p-2">
+            <span class="text-xl font-bold italic">A</span>
+        </button>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -131,326 +256,610 @@
         import { auth } from './firebase-config.js';
         import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-        let book, rendition, currentBookId;
-        let currentSelection = null; 
-        const THEME_KEY = 'staant_theme_preference';
-        const FONT_SIZE_KEY = 'staant_font_size';
-        let currentFontSize = parseInt(localStorage.getItem(FONT_SIZE_KEY)) || 16;
+        let pdfDoc = null, pageNum = 1, pageIsRendering = false, pageNumIsPending = null;
+        let book, rendition;
+        let currentSelection = null;
+        let isNavigating     = false;
+        let lastTouchTime    = 0;
+
+        const THEME_KEY     = 'staant_theme';
+        const FONT_KEY      = 'staant_font_size';
+        const READ_MODE_KEY = 'staant_read_mode';
+        let fontSize = parseInt(localStorage.getItem(FONT_KEY)) || 16;
 
         onAuthStateChanged(auth, (user) => {
-            if (!user) {
-                window.location.href = 'login.html';
-                return;
-            }
+            if (!user) { window.location.href = 'login.html'; return; }
             initReader();
         });
-        
 
-        async function initReader() {
+async function initReader() {
             const cloudUrl = localStorage.getItem('currentEpubUrl');
-            const localId = localStorage.getItem('currentBookId');
-
+            const localId  = localStorage.getItem('currentBookId');
+            
             if (cloudUrl) {
-                loadEpub(cloudUrl);
+                // Se a URL contém .pdf, carrega o leitor novo. Senão, vai de epub.
+                if (cloudUrl.toLowerCase().includes('.pdf')) {
+                    loadPdf(cloudUrl);
+                } else {
+                    loadEpub(cloudUrl);
+                }
             } else if (localId) {
                 const req = indexedDB.open('STAANT_DB', 2);
                 req.onsuccess = (e) => {
-                    const store = e.target.result.transaction(['books'], 'readonly').objectStore('books');
+                    const store = e.target.result.transaction(['books'],'readonly').objectStore('books');
                     store.get(parseInt(localId)).onsuccess = (ev) => {
-                        if(ev.target.result) loadEpub(ev.target.result.data, ev.target.result.title);
+                        if (ev.target.result) loadEpub(ev.target.result.data, ev.target.result.title);
                     };
                 };
+            } else { window.location.href = 'index.html'; }
+        }
+
+        function getSize() {
+            const el = document.getElementById('reader-container');
+            const w = isCustomFS ? Math.min(window.innerWidth, 800) : Math.min(el.clientWidth || window.innerWidth, 800);
+            const h = isCustomFS ? window.innerHeight : (el.clientHeight || (window.innerHeight - 112));
+            return { w, h };
+        }
+
+        // ── CARREGAR EPUB ─────────────────────────────────────────────────────────────
+        async function loadEpub(source, fallbackTitle = 'Livro') {
+            book = ePub(source);
+            await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+            const meta  = await book.loaded.metadata;
+            const title = meta.title || fallbackTitle;
+            document.getElementById('bookTitle').textContent = title;
+
+            const readMode   = localStorage.getItem(READ_MODE_KEY) || 'paginated';
+            const savedTheme = localStorage.getItem(THEME_KEY) || 'sepia';
+
+            if (readMode === 'scroll') {
+                await loadScrollMode(title, savedTheme);
             } else {
-                window.location.href = 'index.html';
+                await loadPagedMode(title, savedTheme);
+            }
+        }
+async function loadPdf(url) {
+            // Esconde os elementos do EPUB e mostra o do PDF
+            document.getElementById('viewer').style.display = 'none';
+            document.getElementById('scroll-viewer').classList.remove('active');
+            document.getElementById('pdf-viewer').style.display = 'flex';
+            document.getElementById('bookTitle').textContent = "Carregando PDF...";
+            
+            try {
+                pdfDoc = await pdfjsLib.getDocument(url).promise;
+                document.getElementById('bookTitle').textContent = "Leitura em PDF";
+                renderPdfPage(pageNum);
+            } catch (err) {
+                console.error("Erro ao carregar PDF:", err);
+                alert("Erro ao carregar o arquivo PDF.");
             }
         }
 
-        async function loadEpub(source, fallbackTitle = "Livro") {
-            book = ePub(source);
-            rendition = book.renderTo("viewer", { width: "100%", height: "100%", flow: "scrolled" });
-            
-            const meta = await book.loaded.metadata;
-            document.getElementById('bookTitle').textContent = meta.title || fallbackTitle;
+        function renderPdfPage(num) {
+            pageIsRendering = true;
+            pdfDoc.getPage(num).then(page => {
+                const canvas = document.getElementById('pdf-canvas');
+                const ctx = canvas.getContext('2d');
+                
+                // Calcula o zoom para caber na tela do celular/PC
+                const containerWidth = document.getElementById('reader-container').clientWidth;
+                const unscaledViewport = page.getViewport({ scale: 1.0 });
+                const scale = (containerWidth / unscaledViewport.width) * 0.95; 
+                const viewport = page.getViewport({ scale: Math.max(scale, 0.7) }); 
+                
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+                
+                page.render({ canvasContext: ctx, viewport: viewport }).promise.then(() => {
+                    pageIsRendering = false;
+                    if (pageNumIsPending !== null) {
+                        renderPdfPage(pageNumIsPending);
+                        pageNumIsPending = null;
+                    }
+                });
+                
+                // Atualiza progresso
+                document.getElementById('pageCounter').textContent = `PÁG ${num} / ${pdfDoc.numPages}`;
+                const pct = Math.floor((num / pdfDoc.numPages) * 100);
+                document.getElementById('progressBar').style.width = `${pct}%`;
+                document.getElementById('progressPercent').textContent = `${pct}%`;
+            });
+        }
+        // ── MODO PÁGINAS ──────────────────────────────────────────────────────────────
+        async function loadPagedMode(title, savedTheme) {
+            document.getElementById('viewer').style.display           = '';
+            document.getElementById('touch-overlay').style.display    = '';
+            document.getElementById('page-transition').style.display  = '';
+            document.getElementById('scroll-viewer').classList.remove('active');
+            document.getElementById('scroll-loading').classList.remove('active');
+            document.getElementById('reader-container').classList.remove('scroll-mode');
+            document.getElementById('prevBtn').style.visibility = '';
+            document.getElementById('nextBtn').style.visibility = '';
 
-            await applyTheme(localStorage.getItem(THEME_KEY) || 'sepia', true);
+            const { w, h } = getSize();
+            rendition = book.renderTo('viewer', {
+                width: w, height: h, flow: 'paginated',
+                manager: 'default', spread: 'none', allowScriptedContent: true
+            });
+
+            window.addEventListener('resize', () => {
+                setTimeout(() => { const { w: rw, h: rh } = getSize(); rendition.resize(rw, rh); }, 150);
+            });
+
+            applyTheme(savedTheme, true);
+            document.getElementById('themeDropdown').value = savedTheme;
             registerHooks();
-            
-            const savedPos = localStorage.getItem(`pos_${document.getElementById('bookTitle').textContent}`);
+
+            const savedPos = localStorage.getItem(`pos_${title}`);
             await rendition.display(savedPos || undefined);
 
-            book.ready.then(() => book.locations.generate(1024)).then(() => {
-                updateUI();
-                renderAllHighlights(); 
-                renderHighlightsList();
-            });
+            document.getElementById('prevBtn').onclick = () => navigate('prev');
+            document.getElementById('nextBtn').onclick = () => navigate('next');
 
-            document.getElementById('prevBtn').onclick = () => rendition.prev();
-            document.getElementById('nextBtn').onclick = () => rendition.next();
-            
-            const nav = await book.loaded.navigation;
+            const nav  = await book.loaded.navigation;
             const drop = document.getElementById('chaptersDropdown');
             drop.innerHTML = nav.toc.map(c => `<option value="${c.href}">${c.label}</option>`).join('');
-            drop.onchange = (e) => rendition.display(e.target.value);
+            drop.onchange  = (e) => rendition.display(e.target.value);
+
+            book.ready
+                .then(() => book.locations.generate(512))
+                .then(() => { updateUI(); renderAllHighlights(); renderHighlightsList(); });
         }
 
-        function registerHooks() {
-            const currentTheme = localStorage.getItem(THEME_KEY) || 'sepia';
-            // CORES DAS LETRAS
-            const fontColor = {
-                    sepia: '#5b4636', // Marrom suave (Foto 1)
-                    dark: '#5b4636',  // Cinza claro (Foto 2)
-                    light: '#5b4636'
-                }[currentTheme];
-            rendition.hooks.content.register((contents) => {
-                contents.addStylesheetRules({
-                    "body": { 
-                        "color": `${fontColor} !important`, 
-                        "font-size": `${currentFontSize}px !important`, 
-                        "line-height": "1.6 !important", 
-                        "padding": "20px 40px !important",
-                        "background-color": "transparent !important"
-                    },
-                    ".hl-box": { 
-                        "background-color": "rgba(229, 9, 20, 0.3) !important", 
-                        "border-bottom": "2px solid var(--primary-red) !important",
-                        "cursor": "pointer !important"
+        // ── MODO SCROLL — renderiza todos os capítulos direto no DOM ─────────────────
+        async function loadScrollMode(title, savedTheme) {
+            document.getElementById('viewer').style.display          = 'none';
+            document.getElementById('touch-overlay').style.display   = 'none';
+            document.getElementById('page-transition').style.display = 'none';
+            document.getElementById('prevBtn').style.visibility      = 'hidden';
+            document.getElementById('nextBtn').style.visibility      = 'hidden';
+            document.getElementById('pageCounter').textContent       = 'Carregando...';
+
+            const container = document.getElementById('reader-container');
+            const scrollEl  = document.getElementById('scroll-viewer');
+            const loadingEl = document.getElementById('scroll-loading');
+
+            container.classList.add('scroll-mode');
+            loadingEl.classList.add('active');
+            scrollEl.classList.remove('active');
+            scrollEl.innerHTML = '';
+
+            applyScrollTheme(savedTheme);
+            document.getElementById('themeDropdown').value = savedTheme;
+            scrollEl.style.fontSize = `${fontSize}px`;
+
+            await book.ready;
+
+            // Itera pela spine usando a API correta do epub.js
+            let chapterIndex = 0;
+            let section = book.spine.first();
+
+            while (section) {
+                try {
+                    const contents = await section.load(book.load.bind(book));
+                    const doc = (contents && contents.nodeType) ? contents
+                              : (section.document || null);
+
+                    let html = '';
+                    if (doc) {
+                        const body = doc.body || doc.querySelector('body');
+                        html = body ? body.innerHTML : doc.documentElement?.innerHTML || '';
                     }
-                });
 
-                contents.document.addEventListener("click", (e) => {
-        const width = contents.window.innerWidth;
-        const x = e.clientX;
-
-        // Se clicar nos primeiros 20% da tela (Esquerda) -> Volta
-        if (x < width * 0.2) {
-            rendition.prev();
-        } 
-        // Se clicar nos últimos 20% da tela (Direita) -> Avança
-        else if (x > width * 0.8) {
-            rendition.next();
-        }
-        // Os 60% do meio ficam livres para seleção de texto ou menu
-    });
-
-    contents.addStylesheetRules({
-        "body": { 
-            "cursor": "pointer !important", 
-            "-webkit-tap-highlight-color": "transparent !important" 
-        },
-        // Garante que links ou imagens não "roubem" o clique de navegação
-        "a, img": { "pointer-events": "auto !important" } 
-    });
-
-    // 2. ESCUTA DE CLIQUE REFORÇADA
-    // O 'true' no final ativa a fase de captura (pega o clique antes de qualquer div interna)
-    contents.document.addEventListener("click", (e) => {
-        // Se o usuário estiver selecionando texto, não vira a página
-        const selection = contents.window.getSelection();
-        if (!selection.isCollapsed) return;
-
-        const width = contents.window.innerWidth;
-        const x = e.clientX;
-
-        // Zonas de Toque (20% laterais)
-        if (x < width * 0.2) {
-            e.preventDefault();
-            rendition.prev();
-        } else if (x > width * 0.8) {
-            e.preventDefault();
-            rendition.next();
-        }
-    }, true);
-                contents.document.addEventListener("mouseup", () => {
-                    const sel = contents.window.getSelection();
-                    const btn = document.getElementById('bookmarkBtn');
-                    const icon = document.getElementById('bookmarkIcon');
-                    
-                    if (!sel.isCollapsed && sel.toString().trim().length > 0) {
-                        const range = sel.getRangeAt(0);
-                        const cfi = new ePub.CFI(range, contents.cfiBase).toString();
-                        const text = sel.toString().trim();
-                        
-                        currentSelection = { cfi: cfi, text: text };
-                        btn.classList.add('enabled');
-
-                        const bookTitle = document.getElementById('bookTitle').textContent;
-                        const hls = JSON.parse(localStorage.getItem(`hl_${bookTitle}`)) || [];
-                        
-                        // Lógica de Detecção para alternar Bandeira/X
-                        const alreadyExists = hls.some(h => 
-                            h.cfi === cfi || h.text.includes(text) || text.includes(h.text)
-                        );
-
-                        if (alreadyExists) {
-                            icon.className = "fa-solid fa-xmark";
-                            btn.style.color = "#ff4444";
-                            // Sincroniza o CFI para garantir exclusão do registro original
-                            const existingHl = hls.find(h => h.text.includes(text) || text.includes(h.text));
-                            if(existingHl) currentSelection.cfi = existingHl.cfi;
-                        } else {
-                            icon.className = "fa-solid fa-bookmark";
-                            btn.style.color = "#ffeb3b";
+                    if (html.trim()) {
+                        if (chapterIndex > 0) {
+                            const sep = document.createElement('hr');
+                            sep.className = 'chapter-sep';
+                            scrollEl.appendChild(sep);
                         }
-                    } else {
-                        btn.classList.remove('enabled');
-                        icon.className = "fa-solid fa-bookmark";
-                        btn.style.color = "";
-                        currentSelection = null;
+
+                        const wrapper = document.createElement('div');
+                        wrapper.innerHTML = html;
+
+                        // ── RESOLVE IMAGENS via archive (mais confiável que resources) ──
+                        for (const img of wrapper.querySelectorAll('img[src]')) {
+                            try {
+                                const src = img.getAttribute('src');
+                                // Constrói path absoluto dentro do ZIP
+                                const basePath = (section.canonical || section.href || '').replace(/[^/]*$/, '');
+                                const fullPath = src.startsWith('/')
+                                    ? src.slice(1)
+                                    : (basePath + src).replace(/[^/]+\/\.\.\//g, '');
+
+                                // Tenta pelo archive (acesso direto ao ZIP)
+                                let blobUrl = null;
+                                if (book.archive) {
+                                    blobUrl = await book.archive.createUrl(fullPath, { base64: false }).catch(() => null);
+                                }
+                                // Fallback: resources
+                                if (!blobUrl && book.resources) {
+                                    blobUrl = await book.resources.createUrl(fullPath).catch(() => null);
+                                }
+                                if (blobUrl) img.setAttribute('src', blobUrl);
+                            } catch(_) {}
+                        }
+
+                        scrollEl.appendChild(wrapper);
+                        chapterIndex++;
                     }
+
+                    section.unload && section.unload();
+                } catch(err) {
+                    console.warn('Capítulo ignorado:', section.href, err);
+                }
+
+                section = section.next();
+            }
+
+            loadingEl.classList.remove('active');
+            scrollEl.classList.add('active');
+
+            // ── RESTAURA POSIÇÃO SALVA ────────────────────────────────────────────────
+            const scrollKey = `scroll_pos_${title}`;
+            const savedPct  = parseFloat(localStorage.getItem(scrollKey) || '0');
+            if (savedPct > 0) {
+                // Aguarda o layout estabilizar antes de rolar
+                requestAnimationFrame(() => {
+                    const max = container.scrollHeight - container.clientHeight;
+                    container.scrollTop = Math.round((savedPct / 100) * max);
+                    const pct = Math.round(savedPct);
+                    document.getElementById('progressBar').style.width     = `${pct}%`;
+                    document.getElementById('progressPercent').textContent = `${pct}%`;
+                    document.getElementById('pageCounter').textContent     = `${pct}% lido`;
                 });
+            } else {
+                document.getElementById('pageCounter').textContent = '↕ Rolagem';
+            }
+
+            // ── SALVA POSIÇÃO E ATUALIZA PROGRESSO AO ROLAR ──────────────────────────
+            let saveTimer = null;
+            container.addEventListener('scroll', () => {
+                const max = container.scrollHeight - container.clientHeight;
+                if (max <= 0) return;
+                const pct = Math.round((container.scrollTop / max) * 100);
+                document.getElementById('progressBar').style.width     = `${pct}%`;
+                document.getElementById('progressPercent').textContent = `${pct}%`;
+                document.getElementById('pageCounter').textContent     = `${pct}% lido`;
+
+                // Debounce: salva 1s após parar de rolar
+                clearTimeout(saveTimer);
+                saveTimer = setTimeout(() => {
+                    localStorage.setItem(scrollKey, pct);
+                }, 1000);
+            }, { passive: true });
+
+            // Índice de capítulos
+            const nav  = await book.loaded.navigation;
+            const drop = document.getElementById('chaptersDropdown');
+            drop.innerHTML = nav.toc.map(c => `<option value="${c.href}">${c.label}</option>`).join('');
+            drop.onchange = () => {};
+        }
+
+        // Tema para o scroll-viewer
+        function applyScrollTheme(t) {
+            localStorage.setItem(THEME_KEY, t);
+            const sv  = document.getElementById('scroll-viewer');
+            const bgMap = { sepia: '#f4ecd8', dark: '#1a1a1a', light: '#ffffff' };
+            sv.classList.remove('theme-sepia', 'theme-dark', 'theme-light');
+            sv.classList.add(`theme-${t}`);
+            document.getElementById('reader-container').style.backgroundColor = bgMap[t] || bgMap.sepia;
+        }
+
+        // ── NAVEGAÇÃO (modo páginas) ──────────────────────────────────────────────────
+function navigate(direction) {
+            // 1. Navegação exclusiva para PDF
+            if (pdfDoc) {
+                if (direction === 'next') {
+                    if (pageNum >= pdfDoc.numPages) return;
+                    pageNum++;
+                } else {
+                    if (pageNum <= 1) return;
+                    pageNum--;
+                }
+                
+                if (!pageIsRendering) {
+                    renderPdfPage(pageNum);
+                } else {
+                    pageNumIsPending = pageNum;
+                }
+                
+                // Rola pro topo ao trocar de página
+                document.getElementById('pdf-viewer').scrollTop = 0;
+                return;
+            }
+
+            // 2. Navegação existente para EPUB
+            if (isNavigating) return;
+            isNavigating = true;
+            playPageFlip(direction, () => {
+                direction === 'next' ? rendition.next() : rendition.prev();
+                setTimeout(() => { isNavigating = false; }, 50);
+            });
+        }
+
+        function playPageFlip(direction, onMidpoint) {
+            const viewer     = document.getElementById('viewer');
+            const transition = document.getElementById('page-transition');
+            const slide      = document.getElementById('page-slide');
+            const bgColor    = viewer.style.backgroundColor || '#f4ecd8';
+            slide.style.background  = bgColor;
+            slide.style.opacity     = '0';
+            slide.style.transform   = `translateX(${direction === 'next' ? '6px' : '-6px'})`;
+            transition.style.display = 'block';
+            const FADE_IN = 120, FADE_OUT = 160, start = performance.now();
+            let midDone = false;
+            function step(now) {
+                const elapsed = now - start;
+                if (elapsed < FADE_IN) {
+                    const p = elapsed / FADE_IN, e = 1 - Math.pow(1 - p, 2);
+                    slide.style.opacity   = e.toFixed(3);
+                    slide.style.transform = `translateX(${(direction === 'next' ? 6 : -6) * (1 - e)}px)`;
+                    requestAnimationFrame(step);
+                } else {
+                    if (!midDone) {
+                        midDone = true; slide.style.opacity = '1'; slide.style.transform = 'translateX(0)';
+                        onMidpoint(); requestAnimationFrame(step); return;
+                    }
+                    const p = Math.min((elapsed - FADE_IN) / FADE_OUT, 1), e = 1 - Math.pow(1 - p, 2);
+                    slide.style.opacity   = (1 - e).toFixed(3);
+                    slide.style.transform = `translateX(${(direction === 'next' ? -6 : 6) * e}px)`;
+                    if (p < 1) { requestAnimationFrame(step); }
+                    else { transition.style.display = 'none'; slide.style.opacity = '0'; slide.style.transform = ''; }
+                }
+            }
+            requestAnimationFrame(step);
+        }
+
+        // ── OVERLAY DE TOQUE ──────────────────────────────────────────────────────────
+        (function setupTouch() {
+            const overlay  = document.getElementById('touch-overlay');
+            const feedback = document.getElementById('tapFeedback');
+            let tx0 = 0, ty0 = 0, t0 = 0;
+            function showFeedback(x, y) {
+                feedback.style.left = x + 'px'; feedback.style.top = y + 'px';
+                feedback.classList.add('show');
+                setTimeout(() => feedback.classList.remove('show'), 300);
+            }
+            overlay.addEventListener('touchstart', (e) => {
+                tx0 = e.changedTouches[0].clientX; ty0 = e.changedTouches[0].clientY; t0 = Date.now();
+            }, { passive: true });
+            overlay.addEventListener('touchend', (e) => {
+                if (isNavigating) return;
+                const touch = e.changedTouches[0];
+                const dx = touch.clientX - tx0, dy = touch.clientY - ty0, dt = Date.now() - t0;
+                lastTouchTime = Date.now();
+                if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5 && dt < 400) {
+                    e.preventDefault(); showFeedback(touch.clientX, touch.clientY);
+                    dx < 0 ? navigate('next') : navigate('prev'); return;
+                }
+                if (dt < 250 && Math.abs(dx) < 15 && Math.abs(dy) < 15) {
+                    const cw = overlay.clientWidth;
+                    if (touch.clientX < cw * 0.25) { e.preventDefault(); showFeedback(touch.clientX, touch.clientY); navigate('prev'); }
+                    else if (touch.clientX > cw * 0.75) { e.preventDefault(); showFeedback(touch.clientX, touch.clientY); navigate('next'); }
+                    else { overlay.style.pointerEvents = 'none'; setTimeout(() => { overlay.style.pointerEvents = ''; }, 400); }
+                }
+            }, { passive: false });
+            overlay.addEventListener('click', (e) => {
+                if (Date.now() - lastTouchTime < 500) { e.stopPropagation(); e.preventDefault(); }
+            }, true);
+        })();
+
+        // ── HOOKS DE CONTEÚDO ─────────────────────────────────────────────────────────
+        function registerHooks() {
+            const theme     = localStorage.getItem(THEME_KEY) || 'sepia';
+            const fontColor = { sepia: '#5b4636', dark: '#e0e0e0', light: '#1a1a1a' }[theme];
+
+            rendition.hooks.content.register((contents) => {
+                function stripFontNodes(node) {
+                    if (!node || !node.tagName) return;
+                    const tag = node.tagName.toLowerCase();
+                    if (tag === 'link' && node.rel === 'stylesheet') { node.remove(); return; }
+                    if (tag === 'style') { try { if ((node.textContent || '').includes('@font-face')) node.remove(); } catch(_) { node.remove(); } }
+                }
+                contents.document.querySelectorAll('link[rel="stylesheet"], style').forEach(stripFontNodes);
+                new MutationObserver(ms => ms.forEach(m => m.addedNodes.forEach(stripFontNodes)))
+                    .observe(contents.document.head || contents.document.documentElement, { childList: true, subtree: true });
+
+                contents.addStylesheetRules({
+                    '*':    { 'font-family': "Georgia, 'Times New Roman', serif !important" },
+                    'body': {
+                        'color': `${fontColor} !important`, 'font-size': `${fontSize}px !important`,
+                        'line-height': '1.75 !important', 'padding': '24px 40px !important',
+                        'background-color': 'transparent !important',
+                        '-webkit-tap-highlight-color': 'transparent !important',
+                        'font-family': "Georgia, 'Times New Roman', serif !important"
+                    },
+                    'a, img': { 'pointer-events': 'auto !important' },
+                    '.hl-box': { 'background-color': 'rgba(229,9,20,0.25) !important', 'border-bottom': '2px solid #e50914 !important', 'cursor': 'pointer !important' }
+                });
+                contents.document.addEventListener('mouseup', () => handleSelection(contents));
+                contents.document.addEventListener('selectionchange', () => handleSelection(contents));
             });
 
-            rendition.on("relocated", (loc) => {
-                localStorage.setItem(`pos_${document.getElementById('bookTitle').textContent}`, loc.start.cfi);
+            rendition.on('relocated', (loc) => {
+                const title = document.getElementById('bookTitle').textContent;
+                localStorage.setItem(`pos_${title}`, loc.start.cfi);
                 updateUI();
             });
+        }
+
+        function handleSelection(contents) {
+            const sel = contents.window.getSelection();
+            const btn = document.getElementById('bookmarkBtn');
+            const icon = document.getElementById('bookmarkIcon');
+            if (sel && !sel.isCollapsed && sel.toString().trim().length > 0) {
+                const range = sel.getRangeAt(0);
+                const cfi   = new ePub.CFI(range, contents.cfiBase).toString();
+                const text  = sel.toString().trim();
+                currentSelection = { cfi, text };
+                btn.classList.add('enabled');
+                const title = document.getElementById('bookTitle').textContent;
+                const hls   = JSON.parse(localStorage.getItem(`hl_${title}`)) || [];
+                const exists = hls.some(h => h.cfi === cfi || h.text.includes(text) || text.includes(h.text));
+                if (exists) {
+                    icon.className = 'fa-solid fa-xmark'; btn.style.color = '#ff4444';
+                    const ex = hls.find(h => h.text.includes(text) || text.includes(h.text));
+                    if (ex) currentSelection.cfi = ex.cfi;
+                } else { icon.className = 'fa-solid fa-bookmark'; btn.style.color = '#ffeb3b'; }
+            } else {
+                btn.classList.remove('enabled'); icon.className = 'fa-solid fa-bookmark';
+                btn.style.color = ''; currentSelection = null;
+            }
         }
 
         async function handleBookmark() {
             if (!currentSelection) return;
-            const bookTitle = document.getElementById('bookTitle').textContent;
-            const key = `hl_${bookTitle}`;
+            const title = document.getElementById('bookTitle').textContent;
+            const key   = `hl_${title}`;
             let hls = JSON.parse(localStorage.getItem(key)) || [];
-            
-            const existingIndex = hls.findIndex(h => 
-                h.cfi === currentSelection.cfi || h.text.includes(currentSelection.text) || currentSelection.text.includes(h.text)
-            );
-
-            if (existingIndex !== -1) {
-                // AÇÃO: REMOVER
-                removeHighlight(hls[existingIndex].cfi);
-            } else {
-                // AÇÃO: ADICIONAR
-                hls.push(currentSelection);
-                localStorage.setItem(key, JSON.stringify(hls));
-                rendition.annotations.add("highlight", currentSelection.cfi, {}, (e) => {
-                    removeHighlight(currentSelection.cfi);
-                }, "hl-box");
+            const idx = hls.findIndex(h => h.cfi === currentSelection.cfi || h.text.includes(currentSelection.text) || currentSelection.text.includes(h.text));
+            if (idx !== -1) { removeHighlight(hls[idx].cfi); }
+            else {
+                hls.push(currentSelection); localStorage.setItem(key, JSON.stringify(hls));
+                rendition.annotations.add('highlight', currentSelection.cfi, {}, () => { removeHighlight(currentSelection.cfi); }, 'hl-box');
             }
-
             renderHighlightsList();
-            
-            const btn = document.getElementById('bookmarkBtn');
-            const icon = document.getElementById('bookmarkIcon');
-            btn.classList.remove('enabled');
-            icon.className = "fa-solid fa-bookmark";
-            btn.style.color = "";
+            document.getElementById('bookmarkBtn').classList.remove('enabled');
+            document.getElementById('bookmarkIcon').className = 'fa-solid fa-bookmark';
+            document.getElementById('bookmarkBtn').style.color = '';
             currentSelection = null;
         }
 
         window.removeHighlight = (cfi) => {
-            const bookTitle = document.getElementById('bookTitle').textContent;
-            const key = `hl_${bookTitle}`;
+            const title = document.getElementById('bookTitle').textContent;
+            const key   = `hl_${title}`;
             let hls = JSON.parse(localStorage.getItem(key)) || [];
-            
             hls = hls.filter(h => h.cfi !== cfi);
             localStorage.setItem(key, JSON.stringify(hls));
-            rendition.annotations.remove(cfi, "highlight");
+            rendition.annotations.remove(cfi, 'highlight');
             renderHighlightsList();
         };
 
         function renderHighlightsList() {
-            const drop = document.getElementById('highlightsDropdown');
-            const bookTitle = document.getElementById('bookTitle').textContent;
-            const hls = JSON.parse(localStorage.getItem(`hl_${bookTitle}`)) || [];
-            
-            drop.innerHTML = '<option value="" disabled selected>Destaques (' + hls.length + ')</option>';
-            hls.forEach((h) => {
-                const opt = document.createElement('option');
-                opt.value = h.cfi;
-                opt.textContent = h.text.substring(0, 20) + "...";
-                drop.appendChild(opt);
-            });
-
-            if(hls.length > 0) {
-                const clearOpt = document.createElement('option');
-                clearOpt.value = "CLEAR_ALL";
-                clearOpt.textContent = "🗑️ APAGAR TODOS";
-                drop.appendChild(clearOpt);
-            }
+            const drop  = document.getElementById('highlightsDropdown');
+            const title = document.getElementById('bookTitle').textContent;
+            const hls   = JSON.parse(localStorage.getItem(`hl_${title}`)) || [];
+            drop.innerHTML = `<option value="" disabled selected>Destaques (${hls.length})</option>`;
+            hls.forEach(h => { const o = document.createElement('option'); o.value = h.cfi; o.textContent = h.text.substring(0,25)+'...'; drop.appendChild(o); });
+            if (hls.length > 0) { const c = document.createElement('option'); c.value = 'CLEAR_ALL'; c.textContent = 'APAGAR TODOS'; drop.appendChild(c); }
         }
 
         function renderAllHighlights() {
-            const bookTitle = document.getElementById('bookTitle').textContent;
-            const hls = JSON.parse(localStorage.getItem(`hl_${bookTitle}`)) || [];
+            const title = document.getElementById('bookTitle').textContent;
+            const hls   = JSON.parse(localStorage.getItem(`hl_${title}`)) || [];
             hls.forEach(h => {
-                // Limpa antes de renderizar para evitar duplicidade
-                rendition.annotations.remove(h.cfi, "highlight");
-                rendition.annotations.add("highlight", h.cfi, {}, () => {
-                    removeHighlight(h.cfi);
-                }, "hl-box");
+                rendition.annotations.remove(h.cfi, 'highlight');
+                rendition.annotations.add('highlight', h.cfi, {}, () => { removeHighlight(h.cfi); }, 'hl-box');
             });
         }
 
         document.getElementById('highlightsDropdown').onchange = (e) => {
-            const val = e.target.value;
-            if (val === "CLEAR_ALL") {
-                if(confirm("Apagar todas as marcações?")) {
-                    localStorage.removeItem(`hl_${document.getElementById('bookTitle').textContent}`);
-                    location.reload();
-                }
-            } else rendition.display(val);
+            if (e.target.value === 'CLEAR_ALL') {
+                if (confirm('Apagar todas as marcações?')) { localStorage.removeItem(`hl_${document.getElementById('bookTitle').textContent}`); location.reload(); }
+            } else if (rendition) { rendition.display(e.target.value); }
         };
 
         document.getElementById('bookmarkBtn').addEventListener('click', handleBookmark);
 
+        // ── PROGRESSO (modo páginas) ──────────────────────────────────────────────────
         window.updateUI = () => {
-            if (!rendition || !rendition.location) return;
-            const loc = rendition.location;
-            let pct = 0;
-            let label = "PÁG --";
-
-            if (book.locations && book.locations.length() > 0) {
-                const current = book.locations.locationFromCfi(loc.start.cfi);
-                const total = book.locations.length();
-                pct = Math.floor((current / total) * 100);
-                label = `PÁG ${current} / ${total}`;
-            }
-
-            document.getElementById('pageCounter').textContent = label;
-            document.getElementById('progressBar').style.width = `${pct}%`;
+            if (!rendition?.location) return;
+            let pct = 0, label = 'Calculando...';
+            try {
+                if (book.locations?.length() > 0) {
+                    const cur   = book.locations.locationFromCfi(rendition.location.start.cfi);
+                    const total = book.locations.length();
+                    pct   = Math.floor((cur / total) * 100);
+                    label = `PÁG ${cur} / ${total}`;
+                }
+            } catch(_) {}
+            document.getElementById('pageCounter').textContent     = label;
+            document.getElementById('progressBar').style.width     = `${pct}%`;
             document.getElementById('progressPercent').textContent = `${pct}%`;
         };
 
+        // ── TEMA ─────────────────────────────────────────────────────────────────────
         window.applyTheme = async (t, init = false) => {
             localStorage.setItem(THEME_KEY, t);
-            document.getElementById('viewer').style.backgroundColor = { sepia: '#f4ecd8', light: '#ffffff', dark: '#1a1a1a' }[t];
+            document.getElementById('viewer').style.backgroundColor =
+                ({ sepia: '#f4ecd8', light: '#ffffff', dark: '#1a1a1a' })[t] || '#f4ecd8';
             if (rendition && !init) {
-                const pos = rendition.currentLocation().start.cfi;
-                registerHooks();
-                await rendition.display(pos);
-                renderAllHighlights(); 
+                const pos = rendition.currentLocation()?.start?.cfi;
+                registerHooks(); if (pos) await rendition.display(pos);
+                renderAllHighlights();
             }
-            // No seu reader.html, ao carregar o livro:
-const savedTheme = localStorage.getItem('staant_theme') || 'dark';
-applyTheme(savedTheme); // Garante que comece com o que foi escolhido nas configs
         };
 
-// --- FUNÇÃO DE FONTE CORRIGIDA ---
+        document.getElementById('themeDropdown').onchange = (e) => {
+            const isScroll = (localStorage.getItem(READ_MODE_KEY) || 'paginated') === 'scroll';
+            isScroll ? applyScrollTheme(e.target.value) : applyTheme(e.target.value);
+        };
+
+        // ── FONTE ─────────────────────────────────────────────────────────────────────
         window.changeFontSize = (delta) => {
-            currentFontSize = Math.max(12, Math.min(36, currentFontSize + delta));
-            localStorage.setItem(FONT_SIZE_KEY, currentFontSize);
-            
-            // Atualiza o display visual (o número na bolinha)
-            const display = document.getElementById('fontSizeDisplay');
-            if(display) display.textContent = `${currentFontSize}px`;
-
-            // Aplica a nova fonte diretamente no conteúdo do iframe sem recarregar tudo
-            if (rendition) {
-                rendition.getContents().forEach(contents => {
-                    contents.addStylesheetRules({
-                        "body": { "font-size": `${currentFontSize}px !important` }
-                    });
-                });
-            }
+            fontSize = Math.max(12, Math.min(36, fontSize + delta));
+            localStorage.setItem(FONT_KEY, fontSize);
+            document.getElementById('fontSizeDisplay').textContent = `${fontSize}px`;
+            const isScroll = (localStorage.getItem(READ_MODE_KEY) || 'paginated') === 'scroll';
+            if (isScroll) { document.getElementById('scroll-viewer').style.fontSize = `${fontSize}px`; }
+            else { rendition?.getContents().forEach(c => { c.addStylesheetRules({ 'body': { 'font-size': `${fontSize}px !important` } }); }); }
         };
+
+        // ── TELA CHEIA ────────────────────────────────────────────────────────────────
+        let isCustomFS = false;
+        function pushFSState() { history.pushState({ staantFS: true }, ''); }
+        window.addEventListener('popstate', () => { if (isCustomFS) exitCustomFS(); });
+
+        function exitCustomFS() {
+            if (!isCustomFS) return;
+            isCustomFS = false;
+            const icon = document.getElementById('fullscreenIcon');
+            const ui   = document.getElementById('ui-wrapper');
+            const container = document.getElementById('reader-container');
+            ui.style.transform = ''; ui.style.opacity = ''; ui.style.pointerEvents = '';
+            container.style.position = 'fixed'; container.style.inset = '';
+            container.style.top = '112px'; container.style.left = '0';
+            container.style.right = ''; container.style.bottom = '';
+            container.style.height = 'calc(100vh - 112px)';
+            container.style.width = '100%'; container.style.zIndex = '';
+            icon.className = 'fa-solid fa-expand';
+            if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+            else if (document.webkitFullscreenElement) document.webkitExitFullscreen();
+            setTimeout(() => { if (rendition) { const { w, h } = getSize(); rendition.resize(w, h); } }, 350);
+        }
 
         document.getElementById('fullscreenBtn').onclick = () => {
-            if (!document.fullscreenElement) document.documentElement.requestFullscreen();
-            else document.exitFullscreen();
+            const isMobile  = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+            const icon      = document.getElementById('fullscreenIcon');
+            const ui        = document.getElementById('ui-wrapper');
+            const container = document.getElementById('reader-container');
+            if (isMobile || !document.fullscreenEnabled) {
+                isCustomFS = !isCustomFS;
+                if (isCustomFS) {
+                    ui.style.transform = 'translateY(-100%)'; ui.style.opacity = '0'; ui.style.pointerEvents = 'none';
+                    container.style.position = 'fixed'; container.style.inset = '0';
+                    container.style.top = '0'; container.style.left = '0';
+                    container.style.right = '0'; container.style.bottom = '0';
+                    container.style.height = '100%'; container.style.width = '100%'; container.style.zIndex = '9999';
+                    icon.className = 'fa-solid fa-compress';
+                    if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => {});
+                    else if (document.documentElement.webkitRequestFullscreen) document.documentElement.webkitRequestFullscreen();
+                    pushFSState();
+                    setTimeout(() => { if (rendition) { const { w, h } = getSize(); rendition.resize(w, h); } }, 350);
+                } else { exitCustomFS(); }
+            } else {
+                if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
+                else document.exitFullscreen().catch(() => {});
+            }
         };
 
-        document.getElementById('themeDropdown').onchange = (e) => applyTheme(e.target.value);
+        document.addEventListener('fullscreenchange', () => {
+            setTimeout(() => { if (rendition) { const { w, h } = getSize(); rendition.resize(w, h); } }, 350);
+        });
+        document.addEventListener('webkitfullscreenchange', () => {
+            setTimeout(() => { if (rendition) { const { w, h } = getSize(); rendition.resize(w, h); } }, 350);
+        });
     </script>
 </body>
 </html>

@@ -14,9 +14,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
     <style>
-        /* --- DESIGN ORIGINAL PRESERVADO --- */
-        #epubFileInput, #coverFileInput { display: none !important; }
-
+        /* --- VARIÁVEIS GLOBAIS --- */
         :root {
             --primary-red: #e50914;
             --dark-bg: #121212;
@@ -26,581 +24,282 @@
             --light-text: #ccc;
         }
 
+        #epubFileInput { display: none !important; }
+
         body {
             font-family: 'Roboto', sans-serif;
-            margin: 0;
-            padding: 0;
+            margin: 0; padding: 0;
             background-color: var(--dark-bg);
             color: var(--text-color);
             overflow-x: hidden;
         }
 
-        .welcome-message {
-            position: fixed;
-            top: 25px;
-            left: 20px;
-            z-index: 10;
-            font-size: 1.1rem;
-            font-weight: 500;
-            color: var(--light-text);
-        }
-
-/* --- MODAL DE CONFIGURAÇÕES ESTILIZADO --- */
-#settingsModal {
-    display: none; /* Começa escondido */
-    position: fixed;
-    inset: 0; /* Ocupa a tela toda */
-    z-index: 9999; /* Fica na frente de TUDO */
-    background: rgba(0, 0, 0, 0.85); /* Fundo escuro semi-transparente */
-    backdrop-filter: blur(8px); /* Efeito de vidro embaçado ao fundo */
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-}
-
-/* Container do Modal */
-.settings-content {
-    background: #121212; /* Fundo idêntico ao menu lateral */
-    width: 90%;
-    max-width: 380px;
-    border-radius: 32px;
-    border: 1px solid #1f1f1f;
-    padding: 30px;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
-}
-
-/* Cards de Tema */
-.theme-card {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    padding: 16px;
-    border-radius: 18px;
-    border: 2px solid transparent;
-    cursor: pointer;
-    font-weight: 600;
-    font-size: 0.9rem;
-    transition: all 0.2s ease;
-}
-
-.theme-card:active {
-    transform: scale(0.98);
-}
-
-/* Destaque para o tema selecionado (Opcional: você pode adicionar via JS) */
-.theme-card.selected {
-    border-color: #e50914;
-}
-
-/* Estilo dos Botões de Tema dentro do Modal */
-.theme-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-    margin-top: 15px;
-}
-
-.theme-btn {
-    height: 45px;
-    border-radius: 12px;
-    border: 1px solid #444;
-    font-size: 12px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-        /* --- LOADING OVERLAY --- */
+        /* --- LOADING --- */
         #loadingOverlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
             background-color: var(--dark-bg);
             z-index: 9999;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            visibility: visible;
-            opacity: 1;
+            display: flex; justify-content: center; align-items: center;
+            visibility: visible; opacity: 1;
             transition: opacity 0.4s ease;
         }
-
-        #loadingOverlay.hidden {
-            visibility: hidden;
-            opacity: 0;
-            pointer-events: none;
-        }
-
-        .loading-content {
-            text-align: center;
-            color: var(--text-color);
-            font-size: 1.2rem;
-            font-weight: 500;
-        }
-
+        #loadingOverlay.hidden { visibility: hidden; opacity: 0; pointer-events: none; }
+        .loading-content { text-align: center; color: var(--text-color); font-size: 1.2rem; font-weight: 500; }
         .spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid #333333;
+            width: 40px; height: 40px;
+            border: 4px solid #333;
             border-radius: 50%;
             border-top: 4px solid transparent;
             border-right: 4px solid var(--primary-red);
             margin: 0 auto 15px auto;
             animation: spin 1s linear infinite;
         }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        /* --- BARRA SUPERIOR --- */
+        .welcome-message {
+            position: fixed; top: 25px; left: 20px;
+            z-index: 10; font-size: 1.1rem; font-weight: 500; color: var(--light-text);
         }
-
-        #hero {
-            position: relative;
-            height: 400px;
-            background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.9)),
-                        url('https://images.unsplash.com/photo-1512820790803-83ca734da794?q=80&w=1500&auto=format&fit=crop') center/cover no-repeat;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            padding: 0 20px;
-            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.5);
-        }
-
-        .hero-content { max-width: 600px; }
-        .hero-content h2 { font-size: 2.5rem; font-weight: 700; margin: 10px 0; }
-        .hero-buttons { display: flex; justify-content: center; width: 100%; }
-        .hero-content p { font-size: 1rem; font-weight: 400; margin-bottom: 30px; color: var(--light-text); }
-        .hero-buttons button { padding: 10px 25px; margin: 0 10px; border: none; border-radius: 5px; font-weight: 500; cursor: pointer; transition: background-color 0.2s; }
-        .hero-buttons .primary-btn { background-color: var(--text-color); color: var(--dark-bg); margin-left: 0px; }
-        .hero-buttons .secondary-btn { background-color: rgba(255, 255, 255, 0.1); color: var(--text-color); border: 1px solid rgba(255, 255, 255, 0.3); }
-
         #top-utility-container {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 1000;
-            display: flex;
-            align-items: center;
-            gap: 15px;
+            position: fixed; top: 20px; right: 20px;
+            z-index: 1000; display: flex; align-items: center; gap: 15px;
         }
-
         #searchContainer {
-            display: flex;
-            align-items: center;
+            display: flex; align-items: center;
             background-color: rgba(45, 45, 45, 0.8);
-            border-radius: 25px;
-            padding: 5px 15px;
-            backdrop-filter: blur(5px);
-            width: 250px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            border-radius: 25px; padding: 5px 15px;
+            backdrop-filter: blur(5px); width: 250px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
         }
-
         .search-input {
-            flex-grow: 1;
-            background: transparent;
-            border: none;
-            color: var(--text-color);
-            padding: 5px 0;
-            font-size: 1rem;
-            outline: none;
+            flex-grow: 1; background: transparent; border: none;
+            color: var(--text-color); padding: 5px 0; font-size: 1rem; outline: none;
         }
         .search-input::placeholder { color: var(--light-text); opacity: 0.7; }
-
-        .icon-btn { background: none; border: none; color: #fff; font-size: 1.5rem; cursor: pointer; display: none; transition: color 0.2s; }
+        .icon-btn {
+            background: none; border: none; color: #fff;
+            font-size: 1.5rem; cursor: pointer; display: none; transition: color 0.2s;
+        }
         .icon-btn:hover { color: var(--primary-red); }
-
         #addBookBtn {
-            background-color: var(--primary-red);
-            color: var(--text-color);
-            padding: 10px 15px;
-            border: none;
-            border-radius: 5px;
-            font-weight: 700;
-            cursor: pointer;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
-            transition: background-color 0.2s;
+            background-color: var(--primary-red); color: var(--text-color);
+            padding: 10px 15px; border: none; border-radius: 5px;
+            font-weight: 700; cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.4); transition: background-color 0.2s;
         }
         #addBookBtn:hover { background-color: #f87171; }
-
         #adminPanelBtn {
             background-color: #333; color: var(--text-color);
-            padding: 10px 15px; border: 1px solid #444; border-radius: 5px; font-weight: 700; cursor: pointer;
-            display: none; transition: all 0.2s;
+            padding: 10px 15px; border: 1px solid #444; border-radius: 5px;
+            font-weight: 700; cursor: pointer; display: none; transition: all 0.2s;
         }
         #adminPanelBtn:hover { background-color: #444; border-color: var(--primary-red); }
-
         #logoutBtn { background: none; border: none; color: var(--light-text); cursor: pointer; font-size: 1.2rem; }
 
-        #sidebar {
-            position: fixed; top: 0; left: -320px; width: 280px; height: 100%;
-            background-color: var(--card-bg); z-index: 2000;
-            transition: left 0.3s ease; padding: 30px 20px;
-            box-shadow: 5px 0 15px rgba(0,0,0,0.5); visibility: hidden;
+        /* --- BUSCA MOBILE --- */
+        #mobileSearchRow {
+            position: fixed; top: 70px; left: 0;
+            width: 100%; z-index: 999; display: none;
         }
-        #sidebar.active { left: 0; visibility: visible; }
-        .sidebar-item { display: flex; align-items: center; gap: 15px; padding: 15px; border-radius: 8px; cursor: pointer; transition: background 0.2s; margin-bottom: 10px; font-weight: 500; }
-        .sidebar-item:hover { background: rgba(229, 9, 20, 0.1); color: var(--primary-red); }
-        .admin-only-item { display: none; border: 1px solid rgba(229, 9, 20, 0.3); color: var(--primary-red); }
-        #sidebarOverlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; z-index: 1999; backdrop-filter: blur(2px); }
-
-.settings-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.settings-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 18px 20px;
-    background: #2a2a2a; /* Cor de fundo do item na foto */
-    border-radius: 16px;
-    color: white;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-
-.settings-item:hover {
-    background: #333;
-}
-
-.item-left {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    font-size: 1.1rem;
-    font-weight: 600;
-}
-
-.item-left i {
-    width: 25px;
-    text-align: center;
-    color: white;
-}
-
-.theme-sub-btn {
-    width: 100%;
-    padding: 14px;
-    border-radius: 12px; /* Cantos arredondados como os itens principais */
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background-color: #2a2a2a; /* Cor cinza escuro da lista */
-    color: #9ca3af;
-    font-weight: 600;
-    font-size: 0.9rem;
-    cursor: pointer;
-    text-align: center;
-    transition: all 0.2s ease;
-}
-.theme-sub-btn:hover {
-    background-color: #333;
-    color: white;
-    border-color: rgba(255, 255, 255, 0.2);
-}
-/* Feedback visual de clique */
-.theme-sub-btn:active {
-    transform: scale(0.97);
-}
-
-/* Estilo específico para cada cor de tema (Opcional, dá um charme extra) */
-.theme-sub-btn[onclick*="dark"] { border-left: 4px solid #444; }
-.theme-sub-btn[onclick*="sepia"] { border-left: 4px solid #d2c29d; }
-.theme-sub-btn[onclick*="light"] { border-left: 4px solid #fff; }
-
-
-
-/* Overlay para centralizar o modal na tela */
-.settings-modal-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    z-index: 9999;
-    background: rgba(0, 0, 0, 0.85);
-    backdrop-filter: blur(8px);
-    align-items: center;
-    justify-content: center;
-}
-
-/* O container do sub-menu com animação de expansão */
-.submenu-container {
-    padding-left: 3rem;
-    padding-right: 1rem;
-    padding-top: 0.5rem;
-    padding-bottom: 0.5rem;
-    background-color: rgba(0, 0, 0, 0.2);
-    border-radius: 0.75rem;
-    margin-top: 0.25rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    overflow: hidden;
-    transition: all 0.3s ease-in-out;
-}
-
-/* Estilo do botão de salvar baseado no design da STAANT */
-.save-settings-btn {
-    width: 100%;
-    margin-top: 2rem;
-    background-color: #e50914;
-    color: white;
-    padding: 1rem;
-    border-radius: 1rem;
-    font-weight: bold;
-    transition: all 0.2s;
-}
-
-.save-settings-btn:active {
-    transform: scale(0.95);
-}
-
-/* --- SIDEBAR DESIGN (PENTE FINO) --- */
-.sidebar-modern {
-    background-color: #121212; /* Fundo idêntico à imagem */
-    width: 280px;
-    height: 100vh;
-    position: fixed;
-    top: 0;
-    left: -280px; /* Começa escondida */
-    z-index: 1000;
-    transition: left 0.3s ease;
-    border-right: 1px solid #1f1f1f;
-    padding: 20px 0;
-}
-
-.sidebar-modern.active {
-    left: 0;
-}
-
-.menu-title {
-    color: #e50914; /* Vermelho do Projeto Tixan */
-    font-size: 1.25rem;
-    font-weight: bold;
-    padding: 0 24px;
-    margin-bottom: 20px;
-}
-
-.sidebar-btn {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    width: 100%;
-    padding: 16px 24px;
-    background: transparent;
-    border: none;
-    color: white;
-    font-size: 1rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-
-.sidebar-btn:hover {
-    background: rgba(255, 255, 255, 0.05);
-}
-
-.sidebar-btn i {
-    font-size: 1.2rem;
-    color: white; /* Ícones brancos como na foto */
-}
-
-.close-sidebar {
-    position: absolute;
-    top: 15px;
-    right: 20px;
-    color: white;
-    font-size: 1.5rem;
-    background: transparent;
-    border: none;
-    cursor: pointer;
-}
-
-/* Linhas de seleção de tema dentro do menu expandido */
-.theme-select-row {
-    width: 100%;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 14px 20px;
-    color: #bbb;
-    font-size: 0.9rem;
-    font-weight: 500;
-    transition: background 0.2s;
-}
-
-.theme-select-row:hover {
-    background: rgba(255,255,255,0.05);
-    color: white;
-}
-
-/* Botão de Salvar Premium */
-.save-settings-btn {
-    width: 100%;
-    margin-top: 25px;
-    background: #e50914; /* Vermelho Tixan */
-    color: white;
-    padding: 16px;
-    border-radius: 16px;
-    font-weight: bold;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    box-shadow: 0 10px 20px rgba(229, 9, 20, 0.2);
-    transition: all 0.2s;
-}
-
-.save-settings-btn:active {
-    transform: scale(0.96);
-    background: #c40812;
-}
-        #mobileSearchRow { position: fixed; top: 70px; left: 0; width: 100%; z-index: 999; display: none; }
         #mobileSearchRow.active { display: block; padding: 0 20px; }
 
+        /* --- SIDEBAR (único, correto) --- */
+        #sidebarOverlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.6);
+            display: none; z-index: 1999;
+            backdrop-filter: blur(2px);
+        }
+        #sidebar {
+            background-color: #121212;
+            width: 280px; height: 100vh;
+            position: fixed; top: 0; left: -280px;
+            z-index: 2000; transition: left 0.3s ease;
+            border-right: 1px solid #1f1f1f;
+            padding: 20px 0;
+            display: flex; flex-direction: column;
+        }
+        #sidebar.active { left: 0; }
+        .menu-title {
+            color: var(--primary-red); font-size: 1.25rem;
+            font-weight: bold; padding: 0 24px; margin-bottom: 20px;
+        }
+        .close-sidebar {
+            position: absolute; top: 15px; right: 20px;
+            color: white; font-size: 1.5rem;
+            background: transparent; border: none; cursor: pointer;
+        }
+        .sidebar-btn {
+            display: flex; align-items: center; gap: 15px;
+            width: 100%; padding: 16px 24px;
+            background: transparent; border: none;
+            color: white; font-size: 1rem; font-weight: 500;
+            cursor: pointer; transition: background 0.2s; text-align: left;
+        }
+        .sidebar-btn:hover { background: rgba(255,255,255,0.05); }
+        .sidebar-btn i { font-size: 1.2rem; }
+        #adminSidebarBtn { display: none; color: var(--primary-red); }
+        .sidebar-footer {
+            margin-top: auto; margin-bottom: 30px;
+            text-align: center; font-size: 10px;
+            color: rgba(255,255,255,0.2);
+            text-transform: uppercase; letter-spacing: 1px;
+            pointer-events: none; font-weight: 500;
+        }
+
+        /* --- MODAL CONFIGURAÇÕES --- */
+        #settingsModal {
+            display: none; position: fixed; inset: 0;
+            z-index: 9999; background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(8px);
+            align-items: center; justify-content: center; padding: 20px;
+        }
+        .settings-content {
+            background: #121212; width: 90%; max-width: 380px;
+            border-radius: 32px; border: 1px solid #1f1f1f;
+            padding: 30px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.7);
+        }
+        .settings-list { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+        .settings-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 18px 20px; background: #2a2a2a; border-radius: 16px;
+            color: white; cursor: pointer; transition: background 0.2s;
+        }
+        .settings-item:hover { background: #333; }
+        .settings-item.disabled { opacity: 0.5; cursor: default; pointer-events: none; }
+        .item-left { display: flex; align-items: center; gap: 15px; font-size: 1.1rem; font-weight: 600; }
+        .item-left i { width: 25px; text-align: center; }
+        .submenu-wrapper {
+            max-height: 0; overflow: hidden;
+            transition: max-height 0.3s ease-out;
+            background-color: rgba(0,0,0,0.2); border-radius: 12px;
+        }
+        .submenu-inner { padding: 15px; display: flex; flex-direction: column; gap: 12px; }
+        .theme-sub-btn {
+            width: 100%; padding: 14px; border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background-color: #2a2a2a; color: #9ca3af;
+            font-weight: 600; font-size: 0.9rem;
+            cursor: pointer; text-align: center; transition: all 0.2s ease;
+        }
+        .theme-sub-btn:hover { background-color: #333; color: white; }
+        .theme-sub-btn:active { transform: scale(0.97); }
+        .theme-sub-btn.selected { border-color: var(--primary-red); color: #fff; }
+        .theme-sub-btn[data-theme="dark"]  { border-left: 4px solid #444; }
+        .theme-sub-btn[data-theme="sepia"] { border-left: 4px solid #d2c29d; }
+        .theme-sub-btn[data-theme="light"] { border-left: 4px solid #fff; }
+        .read-mode-btn {
+            width: 100%; padding: 14px 16px; border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background-color: #2a2a2a; color: #9ca3af;
+            font-weight: 600; font-size: 0.9rem;
+            cursor: pointer; text-align: left; transition: all 0.2s ease;
+            display: flex; align-items: center; gap: 12px;
+        }
+        .read-mode-btn:hover { background-color: #333; color: white; }
+        .read-mode-btn:active { transform: scale(0.97); }
+        .read-mode-btn.selected { border-color: var(--primary-red); color: #fff; }
+        .read-mode-btn[data-mode="paginated"] { border-left: 4px solid #6366f1; }
+        .read-mode-btn[data-mode="scroll"]    { border-left: 4px solid #22c55e; }
+        .read-mode-btn .mode-desc { font-size: 0.72rem; color: #666; font-weight: 400; display: block; margin-top: 2px; }
+        .save-settings-btn {
+            width: 100%; margin-top: 20px;
+            background: var(--primary-red); color: white;
+            padding: 16px; border-radius: 16px;
+            font-weight: bold; text-transform: uppercase; letter-spacing: 1px;
+            box-shadow: 0 10px 20px rgba(229,9,20,0.2);
+            transition: all 0.2s; border: none; cursor: pointer;
+        }
+        .save-settings-btn:active { transform: scale(0.96); background: #c40812; }
+
+        /* --- HERO --- */
+        #hero {
+            position: relative; height: 400px;
+            background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.9)),
+                        url('https://images.unsplash.com/photo-1512820790803-83ca734da794?q=80&w=1500&auto=format&fit=crop') center/cover no-repeat;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            text-align: center; padding: 0 20px;
+            box-shadow: 0 10px 15px rgba(0,0,0,0.5);
+        }
+        .hero-content { max-width: 600px; }
+        .hero-content h2 { font-size: 2.5rem; font-weight: 700; margin: 10px 0; }
+        .hero-content p { font-size: 1rem; font-weight: 400; margin-bottom: 30px; color: var(--light-text); }
+        .hero-buttons { display: flex; justify-content: center; width: 100%; }
+        .hero-buttons button { padding: 10px 25px; margin: 0 10px; border: none; border-radius: 5px; font-weight: 500; cursor: pointer; transition: background-color 0.2s; }
+        .hero-buttons .primary-btn { background-color: var(--text-color); color: var(--dark-bg); }
+        .hero-buttons .secondary-btn { background-color: rgba(255,255,255,0.1); color: var(--text-color); border: 1px solid rgba(255,255,255,0.3); }
+
+        /* --- BIBLIOTECA --- */
         #librarySection { padding: 30px 20px; }
         #librarySection h2 { font-size: 1.5rem; font-weight: 700; margin-bottom: 20px; border-left: 4px solid var(--primary-red); padding-left: 10px; }
         #bookList { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 25px; justify-content: center; }
 
+        /* --- CARDS --- */
         .book-card-modern {
-            position: relative;
-            height: 280px;
-            background-size: cover;
-            background-position: center;
-            border-radius: 8px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.7);
-            overflow: hidden;
-            transition: transform 0.3s, box-shadow 0.3s;
+            position: relative; height: 280px;
+            background-size: cover; background-position: center;
+            border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.7);
+            overflow: hidden; transition: transform 0.3s, box-shadow 0.3s;
         }
-        .book-card-modern:hover { transform: translateY(-5px) scale(1.02); box-shadow: 0 8px 20px rgba(229, 9, 20, 0.7); }
-
+        .book-card-modern:hover { transform: translateY(-5px) scale(1.02); box-shadow: 0 8px 20px rgba(229,9,20,0.7); }
         .card-overlay {
             position: absolute; inset: 0;
             background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.7) 40%, rgba(0,0,0,0) 100%);
             display: flex; flex-direction: column; justify-content: flex-end; padding: 15px;
         }
-
         .card-title { font-size: 1.1rem; font-weight: 700; line-height: 1.2; margin-bottom: 2px; }
         .card-author { font-size: 0.85rem; color: var(--light-text); margin-bottom: 12px; }
-
         .card-actions { display: flex; gap: 8px; }
         .read-btn { flex-grow: 1; display: flex; justify-content: center; align-items: center; background-color: var(--primary-red); color: var(--text-color); padding: 8px 5px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem; }
-        .info-btn, .remove-btn { background-color: rgba(255, 255, 255, 0.1); color: var(--text-color); padding: 8px; border: none; border-radius: 6px; cursor: pointer; width: 35px; }
+        .info-btn, .remove-btn { background-color: rgba(255,255,255,0.1); color: var(--text-color); padding: 8px; border: none; border-radius: 6px; cursor: pointer; width: 35px; }
 
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.85); display: none; justify-content: center; align-items: flex-start; z-index: 3000; overflow-y: auto; padding-top: 50px; }
-        .modal-content { background-color: var(--card-bg); border-radius: 10px; width: 90%; max-width: 600px; padding: 25px; position: relative; }
-        .form-input, .form-textarea { width: 100%; padding: 10px; border: 1px solid #333; border-radius: 5px; background-color: var(--input-bg); color: #fff; margin-bottom: 15px; box-sizing: border-box; }
-        .file-drop-area { border: 2px dashed #444; border-radius: 8px; padding: 20px; text-align: center; cursor: pointer; background-color: var(--input-bg); margin-bottom: 15px; }
-
-        #descriptionModal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.9); display: none; justify-content: center; align-items: center; z-index: 2000; backdrop-filter: blur(5px); }
+        /* --- MODAIS --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.85);
+            display: none; justify-content: center; align-items: flex-start;
+            z-index: 3000; overflow-y: auto; padding-top: 50px;
+        }
+        .modal-content {
+            background-color: var(--card-bg); border-radius: 10px;
+            width: 90%; max-width: 600px; padding: 25px; position: relative;
+        }
+        .form-input, .form-textarea {
+            width: 100%; padding: 10px; border: 1px solid #333; border-radius: 5px;
+            background-color: var(--input-bg); color: #fff;
+            margin-bottom: 15px; box-sizing: border-box;
+        }
+        .file-drop-area {
+            border: 2px dashed #444; border-radius: 8px;
+            padding: 20px; text-align: center; cursor: pointer;
+            background-color: var(--input-bg); margin-bottom: 15px;
+        }
+        #descriptionModal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.9);
+            display: none; justify-content: center; align-items: center;
+            z-index: 2000; backdrop-filter: blur(5px);
+        }
         .desc-header { display: flex; align-items: flex-start; gap: 20px; margin-bottom: 20px; }
         .desc-cover { width: 150px; height: 200px; object-fit: cover; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
         .desc-text-content { font-size: 0.95rem; line-height: 1.6; color: var(--light-text); border-top: 1px solid #333; padding-top: 20px; }
 
+        /* --- RESPONSIVO --- */
         @media (max-width: 768px) {
             #top-utility-container { width: calc(100% - 40px); justify-content: space-between; left: 20px; right: 20px; }
             #searchContainer, #addBookBtn, #logoutBtn, #adminPanelBtn { display: none !important; }
             .icon-btn { display: block; }
-            .welcome-message { display: none; } 
+            .welcome-message { display: none; }
             #bookList { grid-template-columns: repeat(2, 1fr); gap: 15px; }
             .book-card-modern { height: 220px; }
             .hero-content h2 { font-size: 1.8rem; }
         }
-        .submenu-wrapper {
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.3s ease-out;
-    background-color: rgba(0, 0, 0, 0.2);
-    border-radius: 12px;
-}
-.submenu-inner {
-    padding: 15px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px; /* Espaço entre os botões de tema */
-}
     </style>
 </head>
 <body>
-
-<div id="sidebar" class="sidebar-modern">
-    <div class="sidebar-header">
-        <h2 class="menu-title">Menu</h2>
-        <button onclick="toggleSidebar()" class="close-sidebar">&times;</button>
-    </div>
-    
-    <div class="sidebar-content">
-        <button onclick="openAddModal()" class="sidebar-btn">
-            <i class="fa-solid fa-circle-plus"></i>
-            <span>Adicionar Livro</span>
-        </button>
-
-        <button onclick="openSettingsModal()" class="sidebar-btn">
-            <i class="fa-solid fa-gear"></i>
-            <span>Configurações</span>
-        </button>
-
-        <button onclick="logout()" class="sidebar-btn">
-            <i class="fa-solid fa-circle-arrow-right"></i>
-            <span>Sair da Conta</span>
-        </button>
-    </div>
-</div>
-
-<div id="settingsModal" class="settings-modal-overlay">
-    <div class="settings-content">
-        <div class="flex justify-between items-center mb-6 px-2">
-            <h2 class="text-xl font-bold text-white">Configurações</h2>
-        </div>
-
-        <div class="settings-list">
-            <div class="settings-item opacity-50">
-                <div class="item-left">
-                    <i class="fa-solid fa-user"></i>
-                    <span>Perfil</span>
-                </div>
-                <i class="fa-solid fa-chevron-right text-xs"></i>
-            </div>
-
-            <div class="settings-item" onclick="toggleSubMenu('theme-options')">
-                <div class="item-left">
-                    <i class="fa-solid fa-moon"></i>
-                    <span>Temas</span>
-                </div>
-                <i id="theme-arrow" class="fa-solid fa-chevron-right text-xs transition-transform duration-300"></i>
-            </div>
-
-            <div id="theme-options" class="submenu-wrapper">
-                <div class="submenu-inner">
-                    <button onclick="applyTheme('dark')" class="theme-sub-btn">Escuro</button>
-                    <button onclick="applyTheme('sepia')" class="theme-sub-btn">Sépia</button>
-                    <button onclick="applyTheme('light')" class="theme-sub-btn">Claro</button>
-                </div>
-            </div>
-
-            <div class="settings-item opacity-50">
-                <div class="item-left">
-                    <i class="fa-solid fa-book-open"></i>
-                    <span>Leitura</span>
-                </div>
-                <i class="fa-solid fa-chevron-right text-xs"></i>
-            </div>
-
-            <div class="settings-item opacity-50">
-                <div class="item-left">
-                    <i class="fa-solid fa-headset"></i>
-                    <span>Ajuda</span>
-                </div>
-                <i class="fa-solid fa-chevron-right text-xs"></i>
-            </div>
-        </div>
-
-        <button onclick="closeSettingsModal()" class="save-settings-btn">
-            CONFIRMAR ALTERAÇÕES
-        </button>
-    </div>
-</div>
-</div>  
-</div>
 
     <div id="loadingOverlay">
         <div class="loading-content">
@@ -608,51 +307,121 @@
             <p>Sincronizando biblioteca...</p>
         </div>
     </div>
+
     <div id="userWelcome" class="welcome-message">Olá!</div>
 
     <div id="top-utility-container">
         <button class="icon-btn" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
-
         <div id="searchContainer">
             <input type="text" id="searchInput" placeholder="Buscar..." class="search-input">
-            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+            <i class="fa-solid fa-magnifying-glass"></i>
         </div>
-
-        <button id="adminPanelBtn" onclick="window.location.href='admin.html'"><i class="fa-solid fa-user-shield"></i> Painel Admin</button>
-
+        <button id="adminPanelBtn" onclick="window.location.href='admin.html'">
+            <i class="fa-solid fa-user-shield"></i> Painel Admin
+        </button>
         <button id="addBookBtn" onclick="openAddModal()">+ Livro</button>
         <button id="logoutBtn" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i></button>
-
         <button class="icon-btn" onclick="toggleSearchMobile()"><i class="fa-solid fa-magnifying-glass"></i></button>
     </div>
 
     <div id="mobileSearchRow">
-        <div style="background: rgba(45, 45, 45, 0.95); border-radius: 10px; padding: 10px; border: 1px solid #444;">
-            <input type="text" id="searchInputMobile" placeholder="O que vamos ler hoje?" 
-                   style="width: 100%; background: transparent; border: none; color: #fff; outline: none;">
+        <div style="background: rgba(45,45,45,0.95); border-radius: 10px; padding: 10px; border: 1px solid #444;">
+            <input type="text" id="searchInputMobile" placeholder="O que vamos ler hoje?"
+                   style="width: 100%; background: transparent; border: none; color: #fff; outline: none; box-sizing: border-box;">
         </div>
     </div>
 
     <div id="sidebarOverlay" onclick="toggleSidebar()"></div>
-    <div id="sidebar">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 1px solid #333; padding-bottom: 15px;">
-            <h3 style="color: var(--primary-red); font-weight: bold; margin: 0;">Menu</h3>
-            <button onclick="toggleSidebar()" style="background: none; border: none; color: #fff; font-size: 1.5rem;">&times;</button>
-        </div>
-        
-        <div id="adminSidebarItem" class="sidebar-item admin-only-item" onclick="window.location.href='admin.html'">
-            <i class="fa-solid fa-user-shield"></i> Painel de Controle
-        </div>
 
-        <div class="sidebar-item" onclick="openAddModal()">
-            <i class="fa-solid fa-plus-circle"></i> Adicionar Livro
-        </div>
-        <div class="sidebar-item" onclick="logout()">
-            <i class="fa-solid fa-right-from-bracket"></i> Sair da Conta
+    <!-- SIDEBAR: único elemento, sem duplicata -->
+    <div id="sidebar">
+        <button onclick="toggleSidebar()" class="close-sidebar">&times;</button>
+        <h2 class="menu-title">Menu</h2>
+
+        <button id="adminSidebarBtn" class="sidebar-btn" onclick="window.location.href='admin.html'">
+            <i class="fa-solid fa-user-shield"></i>
+            <span>Painel de Controle</span>
+        </button>
+        <button class="sidebar-btn" onclick="openAddModal()">
+            <i class="fa-solid fa-circle-plus"></i>
+            <span>Adicionar Livro</span>
+        </button>
+        <button class="sidebar-btn" onclick="openSettingsModal()">
+            <i class="fa-solid fa-gear"></i>
+            <span>Configurações</span>
+        </button>
+        <button class="sidebar-btn" onclick="logout()">
+            <i class="fa-solid fa-circle-arrow-right"></i>
+            <span>Sair da Conta</span>
+        </button>
+
+        <div class="sidebar-footer">STAANT v1.2.3</div>
+    </div>
+
+    <!-- MODAL CONFIGURAÇÕES -->
+    <div id="settingsModal">
+        <div class="settings-content">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; padding: 0 2px;">
+                <h2 style="color:white; font-size:1.25rem; font-weight:bold; margin:0;">Configurações</h2>
+            </div>
+
+            <div class="settings-list">
+                <div class="settings-item" onclick="toggleSubMenu('profile-info')">
+                    <div class="item-left"><i class="fa-solid fa-user"></i><span>Perfil</span></div>
+                    <i id="profile-arrow" class="fa-solid fa-chevron-right" style="font-size:0.75rem; transition:transform 0.3s;"></i>
+                </div>
+                <div id="profile-info" class="submenu-wrapper">
+                    <div class="submenu-inner" style="font-size:0.875rem;">
+                        <div style="display:flex;flex-direction:column;gap:4px;">
+                            <span style="color:var(--primary-red);font-size:0.625rem;font-weight:bold;text-transform:uppercase;letter-spacing:0.1em;">Nome</span>
+                            <span id="profile-name" style="color:white;font-weight:500;">-</span>
+                        </div>
+                        <div style="display:flex;flex-direction:column;gap:4px;">
+                            <span style="color:var(--primary-red);font-size:0.625rem;font-weight:bold;text-transform:uppercase;letter-spacing:0.1em;">E-mail</span>
+                            <span id="profile-email" style="color:#9ca3af;font-family:monospace;">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-item" onclick="toggleSubMenu('theme-options')">
+                    <div class="item-left"><i class="fa-solid fa-moon"></i><span>Temas</span></div>
+                    <i id="theme-arrow" class="fa-solid fa-chevron-right" style="font-size:0.75rem; transition:transform 0.3s;"></i>
+                </div>
+                <div id="theme-options" class="submenu-wrapper">
+                    <div class="submenu-inner">
+                        <button data-theme="dark"  onclick="applyTheme('dark', this)"  class="theme-sub-btn">Escuro</button>
+                        <button data-theme="sepia" onclick="applyTheme('sepia', this)" class="theme-sub-btn">Sépia</button>
+                        <button data-theme="light" onclick="applyTheme('light', this)" class="theme-sub-btn">Claro</button>
+                    </div>
+                </div>
+
+                <div class="settings-item" onclick="toggleSubMenu('reading-options')">
+                    <div class="item-left"><i class="fa-solid fa-book-open"></i><span>Leitura</span></div>
+                    <i id="reading-arrow" class="fa-solid fa-chevron-right" style="font-size:0.75rem; transition:transform 0.3s;"></i>
+                </div>
+                <div id="reading-options" class="submenu-wrapper">
+                    <div class="submenu-inner">
+                        <button data-mode="paginated" onclick="applyReadMode('paginated', this)" class="read-mode-btn">
+                            <i class="fa-solid fa-book" style="color:#6366f1;width:18px;text-align:center;"></i>
+                            <span><span style="display:block;">Páginas</span><span class="mode-desc">Navegar capítulo por capítulo</span></span>
+                        </button>
+                        <button data-mode="scroll" onclick="applyReadMode('scroll', this)" class="read-mode-btn">
+                            <i class="fa-solid fa-scroll" style="color:#22c55e;width:18px;text-align:center;"></i>
+                            <span><span style="display:block;">Rolagem Infinita</span><span class="mode-desc">Texto contínuo sem quebras</span></span>
+                        </button>
+                    </div>
+                </div>
+                <div class="settings-item disabled">
+                    <div class="item-left"><i class="fa-solid fa-headset"></i><span>Ajuda</span></div>
+                    <i class="fa-solid fa-chevron-right" style="font-size:0.75rem;"></i>
+                </div>
+            </div>
+
+            <button onclick="closeSettingsModal()" class="save-settings-btn">CONFIRMAR ALTERAÇÕES</button>
         </div>
     </div>
 
-    <input type="file" id="epubFileInput" accept=".epub">
+    <input type="file" id="epubFileInput" accept=".epub, .pdf">
 
     <div id="hero">
         <div class="hero-content">
@@ -661,9 +430,11 @@
             <h2 id="featuredTitle">Bem-vindo</h2>
             <p id="featuredAuthor"></p>
             <p id="featuredSummary" style="max-width: 450px; margin: 20px auto; font-size: 0.95rem;"></p>
-            <div class="hero-buttons">
-                <button id="readFeaturedBtn" class="primary-btn" style="display:none;"><i class="fa-solid fa-play"></i> Ler Agora</button>
-            </div>
+<div class="hero-buttons">
+    <button id="readFeaturedBtn" class="primary-btn" style="display:none;"><i class="fa-solid fa-play"></i> Ler Agora</button>
+    <!-- Novo botão de adicionar livro no centro da tela -->
+    <button id="addFeaturedBtn" class="primary-btn"  onclick="openAddModal()"><i class="fa-solid fa-plus"></i> Adicionar Livro</button>
+</div>
         </div>
     </div>
 
@@ -674,21 +445,21 @@
 
     <div id="addBookModal" class="modal-overlay">
         <div class="modal-content">
-            <div style="display:flex; justify-content: space-between; align-items:center; margin-bottom:20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
                 <h2>Adicionar Livro</h2>
-                <span onclick="closeModal()" style="cursor:pointer; font-size: 2rem;">&times;</span>
+                <span onclick="closeModal()" style="cursor:pointer; font-size:2rem;">&times;</span>
             </div>
             <form id="bookForm">
                 <div class="file-drop-area" onclick="document.getElementById('epubFileInput').click()">
                     <i class="fa-solid fa-upload"></i>
-                    <p id="epubFileStatus">Clique para selecionar arquivo .epub</p>
+                    <p id="epubFileStatus">Clique para selecionar o arquivo</p>
                 </div>
                 <input type="text" id="bookTitleInput" class="form-input" placeholder="Título *" required>
                 <input type="text" id="bookAuthorInput" class="form-input" placeholder="Autor *" required>
                 <textarea id="bookDescriptionInput" class="form-textarea" placeholder="Descrição" rows="4"></textarea>
-                <div style="display:flex; justify-content: flex-end; gap: 10px;">
-                    <button type="button" onclick="closeModal()" style="background:#444; color:white; padding:10px; border-radius:5px; border:none; cursor:pointer;">Cancelar</button>
-                    <button type="submit" id="submitBookBtn" style="background:var(--primary-red); color:white; padding:10px 20px; border-radius:5px; border:none; font-weight:bold; cursor:pointer;">Adicionar</button>
+                <div style="display:flex; justify-content:flex-end; gap:10px;">
+                    <button type="button" onclick="closeModal()" style="background:#444;color:white;padding:10px;border-radius:5px;border:none;cursor:pointer;">Cancelar</button>
+                    <button type="submit" id="submitBookBtn" style="background:var(--primary-red);color:white;padding:10px 20px;border-radius:5px;border:none;font-weight:bold;cursor:pointer;">Adicionar</button>
                 </div>
             </form>
         </div>
@@ -696,23 +467,23 @@
 
     <div id="descriptionModal">
         <div class="modal-content">
-            <span onclick="closeDescriptionModal()" style="position:absolute; top:15px; right:15px; font-size:2rem; cursor:pointer; color:var(--light-text);">&times;</span>
+            <span onclick="closeDescriptionModal()" style="position:absolute;top:15px;right:15px;font-size:2rem;cursor:pointer;color:var(--light-text);">&times;</span>
             <div class="desc-header">
-                <img id="descCover" class="desc-cover" src="">
-                <div class="desc-info" style="flex-grow:1; margin-left: 20px;">
+                <img id="descCover" class="desc-cover" src="" alt="Capa">
+                <div style="flex-grow:1; margin-left:20px;">
                     <h3 id="descTitle" style="font-size:2rem; font-weight:700;"></h3>
                     <p id="descAuthor" style="color:var(--light-text);"></p>
-                    <button id="descReadBtn" class="read-btn" style="max-width: 150px; margin-top:15px;">Ler Agora</button>
+                    <button id="descReadBtn" class="read-btn" style="max-width:150px; margin-top:15px;">Ler Agora</button>
                 </div>
             </div>
-            <div id="descDescription" class="desc-text-content" style="border-top: 1px solid #333; margin-top: 20px; padding-top: 20px;"></div>
+            <div id="descDescription" class="desc-text-content"></div>
         </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/epubjs/dist/epub.min.js"></script>
 
-<script type="module">
+    <script type="module">
         import { auth, db } from './firebase-config.js';
         import { supabase } from './supabase-config.js';
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
@@ -721,60 +492,7 @@
         let currentCoverBase64 = null;
         let currentEpubArrayBuffer = null;
 
-
-window.toggleSubMenu = (id) => {
-    const menu = document.getElementById(id);
-    const arrow = document.getElementById('theme-arrow');
-    
-    // Se o menu estiver fechado (altura 0), nós abrimos
-    if (!menu.style.maxHeight || menu.style.maxHeight === "0px") {
-        menu.style.maxHeight = menu.scrollHeight + "px"; // Abre até o tamanho do conteúdo
-        arrow.style.transform = 'rotate(90deg)';
-    } else {
-        menu.style.maxHeight = "0px"; // Esconde tudo
-        arrow.style.transform = 'rotate(0deg)';
-    }
-};
-
-    window.openSettingsModal = () => {
-        // Fecha a sidebar antes de abrir as configs para evitar bugs visuais
-        const sidebar = document.getElementById('sidebar');
-        const overlay = document.getElementById('sidebarOverlay');
-        if(sidebar.classList.contains('active')) {
-            sidebar.classList.remove('active');
-            overlay.style.display = 'none';
-        }
-        document.getElementById('settingsModal').style.display = 'flex';
-    };
-
-    window.closeSettingsModal = () => {
-        document.getElementById('settingsModal').style.display = 'none';
-        // Se houver um menu de temas aberto, vamos fechá-lo para a próxima vez
-        const menu = document.getElementById('theme-options');
-        const arrow = document.getElementById('theme-arrow');
-        menu.classList.add('hidden');
-        arrow.style.transform = 'rotate(0deg)';
-    };
-// --- PENTE FINO: FUNCIONALIDADE DE TEMAS ---
-window.applyTheme = (theme) => {
-    // 1. Salva a preferência para o reader.html ler depois
-    localStorage.setItem('staant_theme', theme);
-
-    // 2. (Opcional) Feedback visual imediato nos botões do modal
-    const buttons = document.querySelectorAll('.theme-sub-btn');
-    buttons.forEach(btn => {
-        btn.style.borderColor = 'rgba(255, 255, 255, 0.1)';
-        btn.style.color = '#9ca3af';
-    });
-
-    // Destaca o botão clicado
-    const selectedBtn = event.currentTarget;
-    selectedBtn.style.borderColor = 'var(--primary-red)';
-    selectedBtn.style.color = '#fff';
-
-    console.log(`Tema ${theme} selecionado e salvo!`);
-};
-        // --- INTERFACE (Globais) ---
+        // ─── SIDEBAR ──────────────────────────────────────────────────────────────
         window.toggleSidebar = () => {
             const side = document.getElementById('sidebar');
             side.classList.toggle('active');
@@ -782,40 +500,105 @@ window.applyTheme = (theme) => {
             overlay.style.display = side.classList.contains('active') ? 'block' : 'none';
         };
 
+        // ─── BUSCA MOBILE ─────────────────────────────────────────────────────────
         window.toggleSearchMobile = () => {
             document.getElementById('mobileSearchRow').classList.toggle('active');
         };
 
-        window.openAddModal = () => { 
-            if(document.getElementById('sidebar').classList.contains('active')) toggleSidebar(); 
-            document.getElementById('addBookModal').style.display = 'flex'; 
+        // ─── MODAIS ───────────────────────────────────────────────────────────────
+        window.openAddModal = () => {
+            if (document.getElementById('sidebar').classList.contains('active')) toggleSidebar();
+            document.getElementById('addBookModal').style.display = 'flex';
         };
 
-        window.closeModal = () => { 
-            document.getElementById('addBookModal').style.display = 'none'; 
-            document.getElementById('bookForm').reset(); 
-            currentEpubArrayBuffer = null; 
-            currentCoverBase64 = null; 
+        window.closeModal = () => {
+            document.getElementById('addBookModal').style.display = 'none';
+            document.getElementById('bookForm').reset();
+            currentEpubArrayBuffer = null;
+            currentCoverBase64 = null;
             document.getElementById('epubFileStatus').textContent = "Clique para selecionar arquivo .epub";
         };
 
-        window.closeDescriptionModal = () => { document.getElementById('descriptionModal').style.display = 'none'; };
+        window.closeDescriptionModal = () => {
+            document.getElementById('descriptionModal').style.display = 'none';
+        };
 
+        // ─── CONFIGURAÇÕES (FIX: função única, sem duplicata) ─────────────────────
+        window.openSettingsModal = () => {
+            if (document.getElementById('sidebar').classList.contains('active')) toggleSidebar();
+
+            const user = JSON.parse(localStorage.getItem('staant_user'));
+            if (user) {
+                document.getElementById('profile-name').textContent = user.name || "Usuário";
+                document.getElementById('profile-email').textContent = user.email || "E-mail não encontrado";
+            }
+
+            // Destaca o tema já salvo
+            const savedTheme = localStorage.getItem('staant_theme') || 'dark';
+            document.querySelectorAll('.theme-sub-btn').forEach(btn => {
+                btn.classList.toggle('selected', btn.dataset.theme === savedTheme);
+            });
+
+            // Destaca o modo de leitura já salvo
+            const savedMode = localStorage.getItem('staant_read_mode') || 'paginated';
+            document.querySelectorAll('.read-mode-btn').forEach(btn => {
+                btn.classList.toggle('selected', btn.dataset.mode === savedMode);
+            });
+
+            document.getElementById('settingsModal').style.display = 'flex';
+        };
+
+        // FIX: função única, sem acessar classList de elementos inexistentes
+        window.closeSettingsModal = () => {
+            document.getElementById('settingsModal').style.display = 'none';
+            // Fecha submenus abertos para a próxima vez que abrir
+            ['profile-info', 'theme-options', 'reading-options'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.style.maxHeight = '0px';
+            });
+            const profileArrow = document.getElementById('profile-arrow');
+            const themeArrow = document.getElementById('theme-arrow');
+            const readingArrow = document.getElementById('reading-arrow');
+            if (profileArrow) profileArrow.style.transform = 'rotate(0deg)';
+            if (themeArrow) themeArrow.style.transform = 'rotate(0deg)';
+            if (readingArrow) readingArrow.style.transform = 'rotate(0deg)';
+        };
+
+        window.toggleSubMenu = (id) => {
+            const menu = document.getElementById(id);
+            const arrowMap = { 'profile-info': 'profile-arrow', 'theme-options': 'theme-arrow', 'reading-options': 'reading-arrow' };
+            const arrow = document.getElementById(arrowMap[id]);
+            const isOpen = menu.style.maxHeight && menu.style.maxHeight !== '0px';
+            if (isOpen) {
+                menu.style.maxHeight = '0px';
+                if (arrow) arrow.style.transform = 'rotate(0deg)';
+            } else {
+                menu.style.maxHeight = menu.scrollHeight + 'px';
+                if (arrow) arrow.style.transform = 'rotate(90deg)';
+            }
+        };
+
+        // FIX: recebe botão como argumento em vez de usar event.currentTarget
+        window.applyTheme = (theme, btnEl) => {
+            localStorage.setItem('staant_theme', theme);
+            document.querySelectorAll('.theme-sub-btn').forEach(btn => btn.classList.remove('selected'));
+            if (btnEl) btnEl.classList.add('selected');
+        };
+
+        window.applyReadMode = (mode, btnEl) => {
+            localStorage.setItem('staant_read_mode', mode);
+            document.querySelectorAll('.read-mode-btn').forEach(btn => btn.classList.remove('selected'));
+            if (btnEl) btnEl.classList.add('selected');
+        };
+
+        // ─── LOGOUT ───────────────────────────────────────────────────────────────
         window.logout = async () => {
             await signOut(auth);
             localStorage.clear();
             window.location.href = 'login.html';
         };
-window.openSettingsModal = () => {
-    // Fecha a sidebar se estiver aberta
-    if(document.getElementById('sidebar').classList.contains('active')) toggleSidebar();
-    document.getElementById('settingsModal').style.display = 'flex';
-};
 
-window.closeSettingsModal = () => {
-    document.getElementById('settingsModal').style.display = 'none';
-};
-        // --- SISTEMA (NUVEM TOTAL) ---
+        // ─── AUTENTICAÇÃO ─────────────────────────────────────────────────────────
         onAuthStateChanged(auth, async (user) => {
             if (!user) {
                 window.location.href = 'login.html';
@@ -825,55 +608,72 @@ window.closeSettingsModal = () => {
             const savedUser = JSON.parse(localStorage.getItem('staant_user'));
             if (savedUser) {
                 document.getElementById('userWelcome').innerHTML = `Olá, <b>${savedUser.name.split(' ')[0]}</b>`;
-                if(savedUser.role === 'admin') {
+                if (savedUser.role === 'admin') {
                     document.getElementById('adminPanelBtn').style.display = 'block';
-                    document.getElementById('adminSidebarItem').style.display = 'flex';
+                    document.getElementById('adminSidebarBtn').style.display = 'flex';
                 }
             }
 
             renderList();
         });
 
-        // --- RENDERIZAR DA NUVEM (FIRESTORE) ---
+        // ─── RENDERIZAR (NUVEM) ───────────────────────────────────────────────────
+        // ─── CACHE LOCAL DE LIVROS ──────────────────────────────────────────────
+        const BOOKS_CACHE_KEY = 'staant_books_cache';
+        function saveBooksCache(books) {
+            try { localStorage.setItem(BOOKS_CACHE_KEY, JSON.stringify(books)); } catch(_) {}
+        }
+        function loadBooksCache() {
+            try { return JSON.parse(localStorage.getItem(BOOKS_CACHE_KEY) || 'null'); } catch(_) { return null; }
+        }
+        function renderBooks(books, filter = '') {
+            const bookList = document.getElementById('bookList');
+            bookList.innerHTML = '';
+            const term = filter.toLowerCase();
+            let firstBook = null;
+            books.forEach(book => {
+                if (!term || book.title.toLowerCase().includes(term) || book.author.toLowerCase().includes(term)) {
+                    if (!firstBook) firstBook = book;
+                    bookList.appendChild(createCard(book));
+                }
+            });
+            updateHero(firstBook);
+            document.getElementById('loadingOverlay').classList.add('hidden');
+        }
+
+        // Mostra cache imediatamente, depois sincroniza com Firestore em background
         window.renderList = async (filter = '') => {
             const currentUser = JSON.parse(localStorage.getItem('staant_user'));
             if (!currentUser) return;
 
-            const bookList = document.getElementById('bookList');
-            
+            // 1. Renderiza cache local imediatamente (zero latência)
+            const cached = loadBooksCache();
+            if (cached && cached.length > 0) renderBooks(cached, filter);
+
+            // 2. Busca Firestore em background
             try {
                 const booksRef = collection(db, "books");
                 let q;
-
-                // Admin vê tudo, User vê apenas o seu
                 if (currentUser.role === 'admin') {
                     q = query(booksRef, orderBy("timestamp", "desc"));
                 } else {
                     q = query(booksRef, where("userId", "==", currentUser.id), orderBy("timestamp", "desc"));
                 }
-
                 const querySnapshot = await getDocs(q);
-                
-                // --- ATUALIZAR CONTADOR (PENTE FINO) ---
-                const counterDisplay = document.getElementById('storedBooksCount');
-                if (counterDisplay) {
-                    counterDisplay.textContent = querySnapshot.size;
-                }
-
-                bookList.innerHTML = '';
-                const term = filter.toLowerCase();
-                let firstBook = null;
-
+                const books = [];
                 querySnapshot.forEach((docSnap) => {
-                    const book = { id: docSnap.id, ...docSnap.data() };
-                    if (book.title.toLowerCase().includes(term) || book.author.toLowerCase().includes(term)) {
-                        if (!firstBook) firstBook = book;
-                        bookList.appendChild(createCard(book));
-                    }
+                    books.push({ id: docSnap.id, ...docSnap.data() });
                 });
 
-                updateHero(firstBook);
-                document.getElementById('loadingOverlay').classList.add('hidden');
+                // Só re-renderiza se os dados mudaram (evita flash desnecessário)
+                const cachedIds = JSON.stringify((cached || []).map(b => b.id).sort());
+                const freshIds  = JSON.stringify(books.map(b => b.id).sort());
+                if (cachedIds !== freshIds || !cached) {
+                    saveBooksCache(books);
+                    renderBooks(books, filter);
+                } else {
+                    document.getElementById('loadingOverlay').classList.add('hidden');
+                }
             } catch (error) {
                 console.error("Erro ao carregar:", error);
                 document.getElementById('loadingOverlay').classList.add('hidden');
@@ -898,17 +698,15 @@ window.closeSettingsModal = () => {
             return div;
         }
 
-        window.openReader = (url) => { 
-            localStorage.setItem('currentEpubUrl', url); 
-            window.location.href = 'reader.html'; 
+        window.openReader = (url) => {
+            localStorage.setItem('currentEpubUrl', url);
+            window.location.href = 'reader.html';
         };
 
         window.deleteBookCloud = async (id, path) => {
-            if(confirm("Excluir permanentemente da nuvem?")) {
+            if (confirm("Excluir permanentemente da nuvem?")) {
                 try {
-                    if (path) {
-                        await supabase.storage.from('biblioteca').remove([path]);
-                    }
+                    if (path) await supabase.storage.from('biblioteca').remove([path]);
                     await deleteDoc(doc(db, "books", id));
                     renderList();
                 } catch (e) { console.error(e); }
@@ -924,26 +722,32 @@ window.closeSettingsModal = () => {
             document.getElementById('descriptionModal').style.display = 'flex';
         };
 
-        function updateHero(book) {
-            const fTitle = document.getElementById('featuredTitle');
-            const fAuthor = document.getElementById('featuredAuthor');
-            const fSummary = document.getElementById('featuredSummary');
-            const fBtn = document.getElementById('readFeaturedBtn');
-            if (book) {
-                fTitle.textContent = book.title;
-                fAuthor.textContent = `por ${book.author}`;
-                fSummary.textContent = book.description ? book.description.substring(0, 150) + "..." : "Sem descrição.";
-                fBtn.onclick = () => openReader(book.epubUrl);
-                fBtn.style.display = "block";
-            } else {
-                fTitle.textContent = "Sua Estante";
-                fAuthor.textContent = "";
-                fSummary.textContent = "Adicione um livro para começar.";
-                fBtn.style.display = "none";
-            }
-        }
+function updateHero(book) {
+    const fTitle = document.getElementById('featuredTitle');
+    const fAuthor = document.getElementById('featuredAuthor');
+    const fSummary = document.getElementById('featuredSummary');
+    const fBtn = document.getElementById('readFeaturedBtn');
+    const addBtn = document.getElementById('addFeaturedBtn'); // Referência ao novo botão
 
-        // --- FUNÇÃO DE COMPRESSÃO (PENTE FINO) ---
+    if (book) {
+        fTitle.textContent = book.title;
+        fAuthor.textContent = `por ${book.author}`;
+        fSummary.textContent = book.description ? book.description.substring(0, 150) + "..." : "Sem descrição.";
+        fBtn.onclick = () => openReader(book.epubUrl);
+        
+        fBtn.style.display = "block"; // Mostra botão LER
+        addBtn.style.display = "none"; // Esconde botão ADICIONAR
+    } else {
+        fTitle.textContent = "Sua Estante";
+        fAuthor.textContent = "";
+        fSummary.textContent = "Adicione um livro para começar.";
+        
+        fBtn.style.display = "none"; // Esconde botão LER
+        addBtn.style.display = "block"; // Mostra botão ADICIONAR
+    }
+}
+
+        // ─── COMPRESSÃO DE CAPA ───────────────────────────────────────────────────
         async function compressCover(base64Str) {
             if (!base64Str) return "";
             return new Promise((resolve) => {
@@ -951,7 +755,7 @@ window.closeSettingsModal = () => {
                 img.src = base64Str;
                 img.onload = () => {
                     const canvas = document.createElement('canvas');
-                    const MAX_WIDTH = 250; 
+                    const MAX_WIDTH = 250;
                     const scaleSize = MAX_WIDTH / img.width;
                     canvas.width = MAX_WIDTH;
                     canvas.height = img.height * scaleSize;
@@ -964,13 +768,13 @@ window.closeSettingsModal = () => {
             });
         }
 
-        // --- UPLOAD HÍBRIDO ---
+        // ─── UPLOAD ───────────────────────────────────────────────────────────────
         document.getElementById('bookForm').onsubmit = async (e) => {
             e.preventDefault();
             if (!currentEpubArrayBuffer) return alert("Processando arquivo...");
-            
+
             const btn = document.getElementById('submitBookBtn');
-            btn.disabled = true; 
+            btn.disabled = true;
             btn.textContent = "Sincronizando...";
 
             const user = JSON.parse(localStorage.getItem('staant_user'));
@@ -981,24 +785,25 @@ window.closeSettingsModal = () => {
                 let optimizedCover = await compressCover(currentCoverBase64);
                 if (optimizedCover.length > 500000) optimizedCover = "";
 
-                // Limpeza de nome para Supabase
                 const cleanTitle = title.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
-                const storagePath = `${user.id}/${Date.now()}_${cleanTitle}.epub`;
-                const fileBlob = new Blob([currentEpubArrayBuffer], { type: 'application/epub+zip' });
+                const fileExt = window.currentFileType || 'epub';
+                const storagePath = `${user.id}/${Date.now()}_${cleanTitle}.${fileExt}`;
+                const mimeType = fileExt === 'pdf' ? 'application/pdf' : 'application/epub+zip';
+                const fileBlob = new Blob([currentEpubArrayBuffer], { type: mimeType });
 
                 const { error } = await supabase.storage.from('biblioteca').upload(storagePath, fileBlob);
                 if (error) throw error;
 
                 const { data: urlData } = supabase.storage.from('biblioteca').getPublicUrl(storagePath);
-                
+
                 await addDoc(collection(db, "books"), {
                     userId: user.id,
-                    title, 
-                    author,
+                    title, author,
                     description: document.getElementById('bookDescriptionInput').value,
                     epubUrl: urlData.publicUrl,
                     storagePath: storagePath,
-                    cover: optimizedCover, 
+                    cover: optimizedCover,
+                    fileType: fileExt,
                     timestamp: Date.now()
                 });
 
@@ -1013,34 +818,52 @@ window.closeSettingsModal = () => {
             }
         };
 
-        document.getElementById('epubFileInput').onchange = (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            document.getElementById('epubFileStatus').textContent = "Processando...";
-            const reader = new FileReader();
-            reader.onload = async (ev) => {
-                currentEpubArrayBuffer = ev.target.result;
-                const epub = ePub(currentEpubArrayBuffer);
-                const meta = await epub.loaded.metadata;
-                document.getElementById('bookTitleInput').value = meta.title || "";
-                document.getElementById('bookAuthorInput').value = meta.creator || "";
-                document.getElementById('bookDescriptionInput').value = (meta.description || "").replace(/<[^>]*>?/gm, '');
-                
-                const cUrl = await epub.coverUrl();
-                if (cUrl) {
-                    const res = await fetch(cUrl);
-                    const blob = await res.blob();
-                    const readB = new FileReader();
-                    readB.onloadend = () => { currentCoverBase64 = readB.result; };
-                    readB.readAsDataURL(blob);
-                }
-                document.getElementById('epubFileStatus').textContent = "Arquivo Pronto!";
-            };
-            reader.readAsArrayBuffer(file);
-        };
+    document.getElementById('epubFileInput').onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
+    document.getElementById('epubFileStatus').textContent = "Processando...";
+    
+    // Descobre se é pdf ou epub
+    const fileExt = file.name.split('.').pop().toLowerCase();
+    window.currentFileType = fileExt; // Salva o tipo globalmente
+
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+        currentEpubArrayBuffer = ev.target.result; // Usaremos a mesma variável para o buffer do PDF
+
+        if (fileExt === 'epub') {
+            // Lógica antiga do EPUB
+            const epub = ePub(currentEpubArrayBuffer);
+            const meta = await epub.loaded.metadata;
+            document.getElementById('bookTitleInput').value = meta.title || "";
+            document.getElementById('bookAuthorInput').value = meta.creator || "";
+            document.getElementById('bookDescriptionInput').value = (meta.description || "").replace(/<[^>]*>?/gm, '');
+            
+            const cUrl = await epub.coverUrl();
+            if (cUrl) {
+                const res = await fetch(cUrl);
+                const blob = await res.blob();
+                const readB = new FileReader();
+                readB.onloadend = () => { currentCoverBase64 = readB.result; };
+                readB.readAsDataURL(blob);
+            }
+            document.getElementById('epubFileStatus').textContent = "EPUB Pronto!";
+        } else if (fileExt === 'pdf') {
+            // Nova lógica do PDF
+            document.getElementById('bookTitleInput').value = file.name.replace('.pdf', '');
+            document.getElementById('bookAuthorInput').value = "Desconhecido";
+            document.getElementById('bookDescriptionInput').value = "";
+            currentCoverBase64 = ""; // PDF ficará sem capa automática por enquanto
+            document.getElementById('epubFileStatus').textContent = "PDF Pronto! (Preencha os dados)";
+        }
+    };
+    reader.readAsArrayBuffer(file);
+    };
+        // FIX: busca desktop E mobile ambas conectadas ao renderList
         document.getElementById('searchInput').oninput = (e) => renderList(e.target.value);
-        
+        document.getElementById('searchInputMobile').oninput = (e) => renderList(e.target.value);
+
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js');
         }
