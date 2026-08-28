@@ -329,6 +329,14 @@ async function loadPdf(url) {
             try {
                 pdfDoc = await pdfjsLib.getDocument(url).promise;
                 document.getElementById('bookTitle').textContent = "Leitura em PDF";
+                
+                // ---> ADICIONE ESTA VERIFICAÇÃO AQUI <---
+                const title = "Leitura em PDF"; // O título base que estamos usando para o PDF
+                const savedPos = localStorage.getItem(`pos_${title}`);
+                
+                // Se existir uma página salva, usa ela. Se não, começa na 1.
+                pageNum = (savedPos && !isNaN(savedPos)) ? parseInt(savedPos) : 1;
+                
                 renderPdfPage(pageNum);
             } catch (err) {
                 console.error("Erro ao carregar PDF:", err);
@@ -336,13 +344,12 @@ async function loadPdf(url) {
             }
         }
 
-        function renderPdfPage(num) {
+function renderPdfPage(num) {
             pageIsRendering = true;
             pdfDoc.getPage(num).then(page => {
                 const canvas = document.getElementById('pdf-canvas');
                 const ctx = canvas.getContext('2d');
                 
-                // Calcula o zoom para caber na tela do celular/PC
                 const containerWidth = document.getElementById('reader-container').clientWidth;
                 const unscaledViewport = page.getViewport({ scale: 1.0 });
                 const scale = (containerWidth / unscaledViewport.width) * 0.95; 
@@ -364,6 +371,10 @@ async function loadPdf(url) {
                 const pct = Math.floor((num / pdfDoc.numPages) * 100);
                 document.getElementById('progressBar').style.width = `${pct}%`;
                 document.getElementById('progressPercent').textContent = `${pct}%`;
+
+                // ---> ADICIONE ESTAS DUAS LINHAS AQUI <---
+                const title = document.getElementById('bookTitle').textContent;
+                localStorage.setItem(`pos_${title}`, num);
             });
         }
         // ── MODO PÁGINAS ──────────────────────────────────────────────────────────────

@@ -255,7 +255,40 @@
         .card-actions { display: flex; gap: 8px; }
         .read-btn { flex-grow: 1; display: flex; justify-content: center; align-items: center; background-color: var(--primary-red); color: var(--text-color); padding: 8px 5px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem; }
         .info-btn, .remove-btn { background-color: rgba(255,255,255,0.1); color: var(--text-color); padding: 8px; border: none; border-radius: 6px; cursor: pointer; width: 35px; }
-
+/* --- CARROSSEL DE RECOMENDAÇÕES --- */
+        #recommendationsSection {
+            padding: 30px 20px 10px 20px;
+            display: none; /* Fica oculto até carregar os livros */
+        }
+        #recommendationsSection h2 {
+            font-size: 1.5rem; font-weight: 700; margin-bottom: 20px;
+            border-left: 4px solid var(--primary-red); padding-left: 10px;
+        }
+        .carousel-container {
+            display: flex; gap: 15px; overflow-x: auto;
+            scroll-behavior: smooth; padding-bottom: 15px;
+            /* Customização da barra de rolagem do carrossel */
+            scrollbar-width: thin;
+            scrollbar-color: var(--primary-red) var(--dark-bg);
+        }
+        .carousel-container::-webkit-scrollbar { height: 8px; }
+        .carousel-container::-webkit-scrollbar-track { background: var(--dark-bg); }
+        .carousel-container::-webkit-scrollbar-thumb { background-color: var(--primary-red); border-radius: 10px; }
+        
+        .carousel-card {
+            flex: 0 0 160px; /* Largura fixa para os cards não encolherem */
+            background: #2a2a2a; border-radius: 8px; overflow: hidden;
+            display: flex; flex-direction: column; transition: transform 0.2s;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+        .carousel-card:hover { transform: translateY(-5px); box-shadow: 0 6px 15px rgba(229,9,20,0.4); }
+        .carousel-card-img { height: 220px; background-size: cover; background-position: center; }
+        .carousel-card-content { padding: 10px; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; }
+        .carousel-card-title {
+            font-size: 0.85rem; font-weight: bold; margin: 0 0 5px 0;
+            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+        }
+        .carousel-card-author { font-size: 0.75rem; color: var(--light-text); margin: 0 0 10px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         /* --- MODAIS --- */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -346,6 +379,10 @@
             <i class="fa-solid fa-circle-plus"></i>
             <span>Adicionar Livro</span>
         </button>
+        <button class="sidebar-btn" onclick="openExploreModal()">
+            <i class="fa-solid fa-earth-americas"></i>
+            <span>Explorar Clássicos</span>
+        </button>
         <button class="sidebar-btn" onclick="openSettingsModal()">
             <i class="fa-solid fa-gear"></i>
             <span>Configurações</span>
@@ -355,7 +392,7 @@
             <span>Sair da Conta</span>
         </button>
 
-        <div class="sidebar-footer">STAANT v1.2.3</div>
+        <div class="sidebar-footer">STAANT v1.2.4</div>
     </div>
 
     <!-- MODAL CONFIGURAÇÕES -->
@@ -437,13 +474,43 @@
 </div>
         </div>
     </div>
-
+    <!-- SEÇÃO DE RECOMENDAÇÕES -->
+    <div id="recommendationsSection">
+        <h2 id="recommendationsTitle">Para Você</h2>
+        <div id="recommendationsCarousel" class="carousel-container">
+            <!-- Os cards injetados pelo JavaScript aparecerão aqui -->
+        </div>
+    </div>
     <div id="librarySection">
         <h2 id="collectionTitle">Sua Coleção</h2>
         <div id="bookList"></div>
     </div>
 
-    <div id="addBookModal" class="modal-overlay">
+
+<!-- MODAL EXPLORAR GUTENDEX -->
+    <div id="exploreModal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 800px; width: 95%;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h2><i class="fa-solid fa-book-globe" style="color: var(--primary-red);"></i> Explorar Gutenberg</h2>
+                <span onclick="closeExploreModal()" style="cursor:pointer; font-size:2rem; color:var(--light-text);">&times;</span>
+            </div>
+            
+            <div style="display:flex; gap:10px; margin-bottom: 20px;">
+                <input type="text" id="exploreSearchInput" class="form-input" placeholder="Ex: Machado de Assis, Hamlet..." style="margin-bottom:0;" onkeypress="if(event.key === 'Enter') searchGutendex()">
+                <button onclick="searchGutendex()" style="background:var(--primary-red);color:white;padding:10px 20px;border-radius:5px;border:none;font-weight:bold;cursor:pointer;width:auto;margin-top:0;">Buscar</button>
+            </div>
+            
+            <div id="exploreLoading" style="display:none; text-align:center; color: #888; padding: 20px;">
+                <div class="spinner"></div>
+                <p>Buscando na biblioteca mundial...</p>
+            </div>
+            
+            <div id="exploreResults" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; max-height: 50vh; overflow-y: auto; padding-right: 5px;">
+                <!-- Os livros aparecerão aqui -->
+            </div>
+        </div>
+    </div>
+        <div id="addBookModal" class="modal-overlay">
         <div class="modal-content">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
                 <h2>Adicionar Livro</h2>
@@ -483,11 +550,11 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/epubjs/dist/epub.min.js"></script>
 
-    <script type="module">
+<script type="module">
         import { auth, db } from './firebase-config.js';
         import { supabase } from './supabase-config.js';
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { collection, addDoc, getDocs, query, where, orderBy, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { collection, addDoc, getDocs, query, where, orderBy, deleteDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         let currentCoverBase64 = null;
         let currentEpubArrayBuffer = null;
@@ -599,19 +666,42 @@
         };
 
         // ─── AUTENTICAÇÃO ─────────────────────────────────────────────────────────
+// ─── AUTENTICAÇÃO ───
         onAuthStateChanged(auth, async (user) => {
             if (!user) {
                 window.location.href = 'login.html';
                 return;
             }
 
-            const savedUser = JSON.parse(localStorage.getItem('staant_user'));
-            if (savedUser) {
-                document.getElementById('userWelcome').innerHTML = `Olá, <b>${savedUser.name.split(' ')[0]}</b>`;
-                if (savedUser.role === 'admin') {
-                    document.getElementById('adminPanelBtn').style.display = 'block';
-                    document.getElementById('adminSidebarBtn').style.display = 'flex';
+            try {
+                // Busca os dados atualizados direto do servidor
+                const userDoc = await getDoc(doc(db, "users", user.uid));
+                
+                if (userDoc.exists()) {
+                    const userData = userDoc.data();
+                    
+                    // Atualiza a mensagem de boas-vindas
+                    document.getElementById('userWelcome').innerHTML = `Olá, <b>${userData.name.split(' ')[0]}</b>`;
+                    
+                    // Se for admin no servidor, mostra os botões!
+                    if (userData.role === 'admin') {
+                        document.getElementById('adminPanelBtn').style.display = 'block';
+                        document.getElementById('adminSidebarBtn').style.display = 'flex';
+                    }
+                    
+                    // Atualiza o cache local por precaução
+                    const localUser = JSON.parse(localStorage.getItem('staant_user')) || {};
+                    localUser.role = userData.role;
+                    localStorage.setItem('staant_user', JSON.stringify(localUser));
+
+                    const userPreferences = (userData.preferences && userData.preferences.length > 0) 
+                        ? userData.preferences 
+                        : ['fiction', 'romance', 'adventure', 'history']; 
+                        
+                    carregarRecomendacoes(userPreferences);
                 }
+            } catch (error) {
+                console.error("Erro ao buscar dados do perfil:", error);
             }
 
             renderList();
@@ -867,6 +957,207 @@ function updateHero(book) {
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js');
         }
+// ─── INTEGRAÇÃO GUTENDEX (EXPLORAR) ───────────────────────────────────────
+        window.openExploreModal = () => {
+            if (document.getElementById('sidebar').classList.contains('active')) toggleSidebar();
+            document.getElementById('exploreModal').style.display = 'flex';
+            document.getElementById('exploreSearchInput').value = '';
+            document.getElementById('exploreResults').innerHTML = '<p style="grid-column: 1/-1; text-align:center; color:#888; padding: 20px;">Digite o nome de um livro ou autor clássico para explorar.</p>';
+        };
+
+        window.closeExploreModal = () => {
+            document.getElementById('exploreModal').style.display = 'none';
+        };
+
+        // Função que faz a BUSCA (A que estava faltando!)
+        window.searchGutendex = async () => {
+            const query = document.getElementById('exploreSearchInput').value.trim();
+            if (!query) return;
+
+            const resultsContainer = document.getElementById('exploreResults');
+            const loading = document.getElementById('exploreLoading');
+
+            resultsContainer.innerHTML = '';
+            loading.style.display = 'block';
+
+            try {
+                const response = await fetch(`https://gutendex.com/books?search=${encodeURIComponent(query)}&languages=pt`);
+                const data = await response.json();
+                loading.style.display = 'none';
+
+                const validBooks = data.results.filter(book => book.formats['application/epub+zip']);
+
+                if (validBooks.length === 0) {
+                    resultsContainer.innerHTML = '<p style="grid-column: 1/-1; text-align:center; color:#888;">Nenhum livro EPUB encontrado para essa busca.</p>';
+                    return;
+                }
+
+                validBooks.forEach(book => {
+                    const title = book.title;
+                    const author = book.authors.length > 0 ? book.authors[0].name : 'Autor Desconhecido';
+                    const cover = book.formats['image/jpeg'] || 'https://via.placeholder.com/150x200?text=Sem+Capa';
+                    const epubUrl = book.formats['application/epub+zip'];
+
+                    const card = document.createElement('div');
+                    card.style.cssText = `background: #2a2a2a; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column;`;
+                    
+                    const safeTitle = title.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                    const safeAuthor = author.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+
+                    card.innerHTML = `
+                        <div style="height: 180px; background-image: url('${cover}'); background-size: cover; background-position: center;"></div>
+                        <div style="padding: 12px; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between;">
+                            <div style="margin-bottom: 10px;">
+                                <h4 style="margin: 0 0 4px 0; font-size: 0.85rem; color: white; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${title}</h4>
+                                <p style="margin: 0; font-size: 0.75rem; color: #aaa;">${author}</p>
+                            </div>
+                            <button onclick="importGutendexBook(this, '${epubUrl}', '${safeTitle}', '${safeAuthor}', '${cover}')"
+                                    style="background: var(--primary-red); color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: bold; width: 100%; transition: background 0.2s;">
+                                <i class="fa-solid fa-cloud-arrow-down"></i> Salvar
+                            </button>
+                        </div>
+                    `;
+                    resultsContainer.appendChild(card);
+                });
+            } catch (error) {
+                console.error("Erro API Gutendex:", error);
+                loading.style.display = 'none';
+                resultsContainer.innerHTML = '<p style="grid-column: 1/-1; text-align:center; color:#ff4d4d;">Erro ao buscar livros. Tente novamente.</p>';
+            }
+        };
+
+        // ─── CARROSSEL DE RECOMENDAÇÕES INTELIGENTE ───
+        window.carregarRecomendacoes = async (preferences) => {
+            const container = document.getElementById('recommendationsCarousel');
+            const section = document.getElementById('recommendationsSection');
+            const titleEl = document.getElementById('recommendationsTitle');
+            
+            // Sorteia um gênero das preferências do usuário para a vitrine ser diferente a cada login!
+            const randomGenre = preferences[Math.floor(Math.random() * preferences.length)];
+            
+            const genreNames = {
+                'fiction': 'Ficção', 'science fiction': 'Ficção Científica', 'fantasy': 'Fantasia',
+                'romance': 'Romance', 'mystery': 'Mistério', 'history': 'História', 
+                'adventure': 'Aventura', 'philosophy': 'Filosofia'
+            };
+            
+            titleEl.innerHTML = `Para Você <span style="font-size:0.9rem; color:#888; font-weight:normal; margin-left:10px;">(Baseado em ${genreNames[randomGenre] || randomGenre})</span>`;
+            section.style.display = 'block';
+            container.innerHTML = '<div style="padding: 20px; color: #888;"><i class="fa-solid fa-spinner fa-spin"></i> Separando os melhores livros...</div>';
+            
+            try {
+                // Gutendex permite buscar por tópico (genre)
+                const response = await fetch(`https://gutendex.com/books?topic=${encodeURIComponent(randomGenre)}&languages=pt`);
+                const data = await response.json();
+                
+                // Filtra os que tem EPUB e pega os 10 primeiros
+                const validBooks = data.results.filter(book => book.formats['application/epub+zip']).slice(0, 10);
+                
+                if (validBooks.length === 0) {
+                    section.style.display = 'none';
+                    return;
+                }
+                
+                container.innerHTML = '';
+                
+                validBooks.forEach(book => {
+                    const title = book.title;
+                    const author = book.authors.length > 0 ? book.authors[0].name : 'Autor Desconhecido';
+                    const cover = book.formats['image/jpeg'] || 'https://via.placeholder.com/150x220?text=Sem+Capa';
+                    const epubUrl = book.formats['application/epub+zip'];
+                    
+                    const safeTitle = title.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                    const safeAuthor = author.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                    
+                    const card = document.createElement('div');
+                    card.className = 'carousel-card';
+                    card.innerHTML = `
+                        <div class="carousel-card-img" style="background-image: url('${cover}');"></div>
+                        <div class="carousel-card-content">
+                            <div>
+                                <p class="carousel-card-title">${title}</p>
+                                <p class="carousel-card-author">${author}</p>
+                            </div>
+                            <button onclick="importGutendexBook(this, '${epubUrl}', '${safeTitle}', '${safeAuthor}', '${cover}')"
+                                    style="background: var(--primary-red); color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: bold; width: 100%; transition: background 0.2s;">
+                                <i class="fa-solid fa-cloud-arrow-down"></i> Salvar
+                            </button>
+                        </div>
+                    `;
+                    container.appendChild(card);
+                });
+            } catch (error) {
+                console.error("Erro ao carregar recomendações:", error);
+                container.innerHTML = '<div style="padding: 20px; color: #ff4d4d;">Não foi possível carregar as recomendações no momento.</div>';
+            }
+        };
+// Importação Inteligente usando o seu Backend
+        // Função de importação (Usando o seu próprio Backend na Vercel)
+        window.importGutendexBook = async (btn, epubUrl, title, author, coverUrl) => {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Baixando...';
+
+            try {
+                // 1. Chama o seu servidor proxy na Vercel
+                // COLOCAR A SUA URL DA VERCEL AQUI ABAIXO:
+                const meuBackendUrl = `https://staant-proxy.vercel.app/api/download?url=${encodeURIComponent(epubUrl)}`;
+                
+                const response = await fetch(meuBackendUrl);
+                
+                if (!response.ok) {
+                    throw new Error(`Erro no servidor backend da Vercel: ${response.status}`);
+                }
+                
+                const blob = await response.blob();
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Salvando...';
+
+                // 2. Prepara os dados para o Supabase
+                const user = JSON.parse(localStorage.getItem('staant_user'));
+                const cleanTitle = title.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
+                const storagePath = `${user.id}/${Date.now()}_${cleanTitle.substring(0, 30)}.epub`;
+
+                // 3. Upload invisível para o Supabase
+                const { error: uploadError } = await supabase.storage.from('biblioteca').upload(storagePath, blob);
+                if (uploadError) throw uploadError;
+                const { data: urlData } = supabase.storage.from('biblioteca').getPublicUrl(storagePath);
+
+                // 4. Salva no Firestore
+                await addDoc(collection(db, "books"), {
+                    userId: user.id,
+                    title: title,
+                    author: author,
+                    description: "Clássico importado do Projeto Gutenberg.",
+                    epubUrl: urlData.publicUrl,
+                    storagePath: storagePath,
+                    cover: coverUrl,
+                    fileType: 'epub',
+                    timestamp: Date.now()
+                });
+
+                // 5. Sucesso Visual!
+                btn.style.background = "#22c55e";
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> Na Estante';
+                renderList();
+
+            } catch (error) {
+                console.error("Erro na importação via Vercel:", error);
+                
+                // Fallback manual de segurança
+                btn.disabled = false;
+                btn.style.background = "#3b82f6"; // Fica Azul
+                btn.innerHTML = '<i class="fa-solid fa-download"></i> Baixar Manualmente';
+                
+                btn.onclick = () => {
+                    const secureEpubUrl = epubUrl.replace('http://', 'https://');
+                    window.open(secureEpubUrl, '_blank'); 
+                    closeExploreModal();
+                    openAddModal(); 
+                };
+                
+                alert("Falha na importação. Clique em 'Baixar Manualmente' para obter o arquivo.");
+            }
+        };
     </script>
 </body>
 </html>
+

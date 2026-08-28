@@ -16,84 +16,50 @@
             --text-color: #fff; 
         }
         body { 
-            font-family: 'Roboto', sans-serif; 
-            color: var(--text-color); 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            min-height: 100vh; 
-            margin: 0; 
-            /* Fundo estilo Netflix com textura de livros */
-            background: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,1) 100%), 
+            font-family: 'Roboto', sans-serif; color: var(--text-color);
+            display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0;
+            background: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,1) 100%),
                         url('https://images.unsplash.com/photo-1507842217343-583bb7270b66?q=80&w=1920&auto=format&fit=crop') center/cover no-repeat;
         }
         .container { 
-            background-color: rgba(0, 0, 0, 0.75); 
-            padding: 40px; 
-            border-radius: 12px; 
-            width: 100%; 
-            max-width: 400px; 
-            text-align: center; 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-            backdrop-filter: blur(5px);
-            border: 1px solid rgba(255,255,255,0.1);
+            background-color: rgba(0, 0, 0, 0.75); padding: 40px; border-radius: 12px;
+            width: 100%; max-width: 450px; text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5); backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.1);
         }
-
-        /* --- ESTILO DA ÁREA DE MENSAGENS --- */
-        #messageArea {
-            min-height: 20px;
-            margin-bottom: 20px;
-            font-size: 0.85rem;
-            border-radius: 8px;
-            padding: 12px;
-            display: none;
-            font-weight: 500;
-        }
-        .error-msg {
-            background-color: rgba(229, 9, 20, 0.15);
-            color: #ff4d4d;
-            border: 1px solid var(--primary-red);
-        }
-        .success-msg {
-            background-color: rgba(34, 197, 94, 0.15);
-            color: #4ade80;
-            border: 1px solid #22c55e;
-        }
-
-        input { 
-            width: 100%; 
-            padding: 12px; 
-            margin: 10px 0; 
-            border-radius: 8px; 
-            border: 1px solid transparent; 
-            background: var(--input-bg); 
-            color: white; 
-            box-sizing: border-box; 
-            outline: none;
-        }
+        #messageArea { min-height: 20px; margin-bottom: 20px; font-size: 0.85rem; border-radius: 8px; padding: 12px; display: none; font-weight: 500; }
+        .error-msg { background-color: rgba(229, 9, 20, 0.15); color: #ff4d4d; border: 1px solid var(--primary-red); }
+        .success-msg { background-color: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid #22c55e; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid transparent; background: var(--input-bg); color: white; box-sizing: border-box; outline: none; }
         input:focus { border-color: var(--primary-red); }
-        button { 
-            width: 100%; 
-            padding: 12px; 
-            background: var(--primary-red); 
-            color: white; 
-            border: none; 
-            border-radius: 8px; 
-            font-weight: bold; 
-            cursor: pointer; 
-            margin-top: 10px;
-            transition: background 0.2s;
-        }
-        button:hover { background: #d41821; }
-        button:disabled { background: #555; cursor: not-allowed; }
+        button[type="submit"] { width: 100%; padding: 12px; background: var(--primary-red); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 20px; transition: background 0.2s; }
+        button[type="submit"]:hover { background: #d41821; }
+        button[type="submit"]:disabled { background: #555; cursor: not-allowed; }
         .links { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
         a { color: #ccc; text-decoration: none; font-size: 0.85rem; }
         a:hover { text-decoration: underline; color: #fff; }
+
+        /* Estilo da Pesquisa de Gostos Literários */
+        .genres-section { margin-top: 20px; text-align: left; }
+        .genres-title { font-size: 0.9rem; color: #aaa; margin-bottom: 10px; font-weight: bold; }
+        .genre-grid { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+        .genre-chip {
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+            color: #ccc; padding: 8px 16px; border-radius: 20px; font-size: 0.85rem;
+            cursor: pointer; transition: all 0.2s ease; user-select: none;
+        }
+        .genre-chip:hover { background: rgba(255,255,255,0.2); }
+        .genre-chip.selected {
+            background: rgba(229, 9, 20, 0.2);
+            border-color: var(--primary-red);
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 0 10px rgba(229,9,20,0.3);
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1 style="color: var(--primary-red); margin-bottom: 10px; font-size: 2.5rem; letter-spacing: 2px;">STAANT</h1>
+        <h1 style="color: var(--primary-red); margin-bottom: 5px; font-size: 2.5rem; letter-spacing: 2px;">STAANT</h1>
         <p style="color: #aaa; margin-bottom: 20px; font-size: 0.9rem;">Crie sua conta</p>
         
         <div id="messageArea"></div>
@@ -103,9 +69,25 @@
             <input type="email" id="email" placeholder="E-mail" required>
             <input type="password" id="password" placeholder="Senha (mín. 6 caracteres)" required minlength="6">
             <input type="password" id="confirmPassword" placeholder="Confirmar Senha" required minlength="6">
+            
+            <!-- Seção estilo Spotify -->
+            <div class="genres-section">
+                <div class="genres-title">Do que você gosta de ler? (Escolha 1 ou mais)</div>
+                <div class="genre-grid" id="genreGrid">
+                    <div class="genre-chip" data-topic="fiction">Ficção</div>
+                    <div class="genre-chip" data-topic="science fiction">Ficção Científica</div>
+                    <div class="genre-chip" data-topic="fantasy">Fantasia</div>
+                    <div class="genre-chip" data-topic="romance">Romance</div>
+                    <div class="genre-chip" data-topic="mystery">Mistério</div>
+                    <div class="genre-chip" data-topic="history">História</div>
+                    <div class="genre-chip" data-topic="adventure">Aventura</div>
+                    <div class="genre-chip" data-topic="philosophy">Filosofia</div>
+                </div>
+            </div>
+
             <button type="submit" id="btnRegister">Cadastrar</button>
         </form>
-
+        
         <div class="links">
             <a href="login.html">Já tem uma conta? Entre aqui</a>
         </div>
@@ -113,21 +95,28 @@
 
     <script type="module">
         import { auth, db } from './firebase-config.js';
-        import { 
-            createUserWithEmailAndPassword, 
-            updateProfile,
-            signOut 
-        } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { 
-            doc, 
-            setDoc 
-        } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { createUserWithEmailAndPassword, updateProfile, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const registerForm = document.getElementById('registerForm');
         const btnRegister = document.getElementById('btnRegister');
         const messageArea = document.getElementById('messageArea');
 
-        // Função para exibir mensagens na tela
+        // Lógica de seleção dos Chips
+        const selectedGenres = new Set();
+        document.querySelectorAll('.genre-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                const topic = chip.getAttribute('data-topic');
+                if (selectedGenres.has(topic)) {
+                    selectedGenres.delete(topic);
+                    chip.classList.remove('selected');
+                } else {
+                    selectedGenres.add(topic);
+                    chip.classList.add('selected');
+                }
+            });
+        });
+
         function showMessage(text, type = 'error') {
             messageArea.textContent = text;
             messageArea.className = type === 'error' ? 'error-msg' : 'success-msg';
@@ -137,6 +126,11 @@
         registerForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             messageArea.style.display = 'none';
+
+            if (selectedGenres.size === 0) {
+                showMessage("Por favor, selecione pelo menos um gênero literário!");
+                return;
+            }
 
             const name = document.getElementById('name').value.trim();
             const email = document.getElementById('email').value.trim();
@@ -152,29 +146,26 @@
             btnRegister.textContent = "Processando...";
 
             try {
-                // 1. Cria usuário no Authentication
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 const user = userCredential.user;
 
-                // 2. Salva o Nome no Perfil do Auth
                 await updateProfile(user, { displayName: name });
 
-                // 3. Salva os dados no Firestore Database
+                // Agora salvamos as preferências de leitura no banco de dados!
                 await setDoc(doc(db, "users", user.uid), {
                     uid: user.uid,
                     name: name,
                     email: email.toLowerCase().trim(),
                     role: "user",
+                    preferences: Array.from(selectedGenres), // Salva como Array ex: ['fiction', 'adventure']
                     createdAt: new Date()
                 });
 
-                // 4. Limpeza e Sucesso
                 await signOut(auth);
                 localStorage.removeItem('staant_user');
                 localStorage.removeItem('staant_logged');
-
+                
                 showMessage("Conta criada com sucesso! Redirecionando...", "success");
-
                 setTimeout(() => {
                     window.location.href = 'login.html';
                 }, 2000);
@@ -183,7 +174,6 @@
                 console.error("Erro detalhado:", error);
                 btnRegister.disabled = false;
                 btnRegister.textContent = "Cadastrar";
-
                 let msg = "Erro ao cadastrar.";
                 if (error.code === 'auth/email-already-in-use') msg = "Este e-mail já está sendo usado.";
                 if (error.code === 'auth/weak-password') msg = "A senha deve ter pelo menos 6 caracteres.";
