@@ -320,6 +320,20 @@
         .desc-cover { width: 150px; height: 200px; object-fit: cover; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
         .desc-text-content { font-size: 0.95rem; line-height: 1.6; color: var(--light-text); border-top: 1px solid #333; padding-top: 20px; }
 
+        /* --- TOAST / CONFIRM (substitui alert/confirm nativos) --- */
+        #toastContainer { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 10000; display: flex; flex-direction: column; gap: 10px; align-items: center; pointer-events: none; width: 90%; max-width: 420px; }
+        .toast { background: #262626; color: #fff; padding: 14px 20px; border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); font-size: 0.9rem; border-left: 4px solid var(--primary-red); opacity: 0; transform: translateY(12px); transition: opacity 0.25s ease, transform 0.25s ease; pointer-events: auto; }
+        .toast.show { opacity: 1; transform: translateY(0); }
+        .toast.success { border-left-color: #22c55e; }
+        .toast.info { border-left-color: #3b82f6; }
+        #confirmModal { display: none; position: fixed; inset: 0; z-index: 10001; background: rgba(0,0,0,0.75); align-items: center; justify-content: center; backdrop-filter: blur(3px); }
+        .confirm-box { background: #1f1f1f; border: 1px solid #333; border-radius: 16px; padding: 26px; max-width: 340px; width: 90%; text-align: center; }
+        .confirm-box p { color: #eee; margin: 0 0 20px; font-size: 0.95rem; line-height: 1.4; }
+        .confirm-actions { display: flex; gap: 10px; }
+        .confirm-actions button { flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        #confirmCancelBtn { background: #333; color: #fff; }
+        #confirmOkBtn { background: var(--primary-red); color: #fff; }
+
         /* --- RESPONSIVO --- */
         @media (max-width: 768px) {
             #top-utility-container { width: calc(100% - 40px); justify-content: space-between; left: 20px; right: 20px; }
@@ -375,24 +389,40 @@
             <i class="fa-solid fa-user-shield"></i>
             <span>Painel de Controle</span>
         </button>
+        
+        <!-- NOVO: Botão Início -->
+        <button class="sidebar-btn" onclick="switchView('home')">
+            <i class="fa-solid fa-house"></i>
+            <span>Início</span>
+        </button>
+
         <button class="sidebar-btn" onclick="openAddModal()">
             <i class="fa-solid fa-circle-plus"></i>
             <span>Adicionar Livro</span>
         </button>
+
+        <!-- NOVO: Botão Sua Coleção movido pra cá -->
+        <button class="sidebar-btn" onclick="switchView('library')">
+            <i class="fa-solid fa-book-bookmark"></i>
+            <span>Sua Coleção</span>
+        </button>
+
         <button class="sidebar-btn" onclick="openExploreModal()">
             <i class="fa-solid fa-earth-americas"></i>
             <span>Explorar Clássicos</span>
         </button>
+        
         <button class="sidebar-btn" onclick="openSettingsModal()">
             <i class="fa-solid fa-gear"></i>
             <span>Configurações</span>
         </button>
+        
         <button class="sidebar-btn" onclick="logout()">
             <i class="fa-solid fa-circle-arrow-right"></i>
             <span>Sair da Conta</span>
         </button>
 
-        <div class="sidebar-footer">STAANT v1.2.4</div>
+        <div class="sidebar-footer">STAANT v1.2.5</div>
     </div>
 
     <!-- MODAL CONFIGURAÇÕES -->
@@ -460,29 +490,29 @@
 
     <input type="file" id="epubFileInput" accept=".epub, .pdf">
 
-    <div id="hero">
-        <div class="hero-content">
-            <h1 style="color: var(--primary-red); margin: 0; font-size: 3rem; font-weight: 800;">STAANT</h1>
-            <p style="font-size: 1.2rem; color: #aaa;">Sua biblioteca digital</p>
-            <h2 id="featuredTitle">Bem-vindo</h2>
-            <p id="featuredAuthor"></p>
-            <p id="featuredSummary" style="max-width: 450px; margin: 20px auto; font-size: 0.95rem;"></p>
-<div class="hero-buttons">
-    <button id="readFeaturedBtn" class="primary-btn" style="display:none;"><i class="fa-solid fa-play"></i> Ler Agora</button>
-    <!-- Novo botão de adicionar livro no centro da tela -->
-    <button id="addFeaturedBtn" class="primary-btn"  onclick="openAddModal()"><i class="fa-solid fa-plus"></i> Adicionar Livro</button>
-</div>
+<!-- VISÃO 1: INÍCIO (Descoberta estilo Netflix) -->
+    <div id="homeView">
+        <div id="hero">
+            <div class="hero-content">
+                <h1 style="color: var(--primary-red); margin: 0; font-size: 3rem; font-weight: 800;">STAANT</h1>
+                <p style="font-size: 1.2rem; color: #aaa;">Sua biblioteca digital</p>
+                <h2 id="featuredTitle">Bem-vindo</h2>
+                <p id="featuredAuthor"></p>
+                <p id="featuredSummary" style="max-width: 450px; margin: 20px auto; font-size: 0.95rem;"></p>
+                <div class="hero-buttons">
+                    <button id="readFeaturedBtn" class="primary-btn" style="display:none;"><i class="fa-solid fa-play"></i> Ler Agora</button>
+                    <button id="addFeaturedBtn" class="primary-btn" onclick="openAddModal()"><i class="fa-solid fa-plus"></i> Adicionar Livro</button>
+                </div>
+            </div>
         </div>
+        
+        <!-- Onde os Múltiplos Carrosséis vão aparecer -->
+        <div id="multiCarouselsContainer" style="padding-bottom: 50px;"></div>
     </div>
-    <!-- SEÇÃO DE RECOMENDAÇÕES -->
-    <div id="recommendationsSection">
-        <h2 id="recommendationsTitle">Para Você</h2>
-        <div id="recommendationsCarousel" class="carousel-container">
-            <!-- Os cards injetados pelo JavaScript aparecerão aqui -->
-        </div>
-    </div>
-    <div id="librarySection">
-        <h2 id="collectionTitle">Sua Coleção</h2>
+
+    <!-- VISÃO 2: SUA COLEÇÃO (Oculta por padrão) -->
+    <div id="librarySection" style="display: none; padding: 30px 20px; margin-top: 60px;">
+        <h2 id="collectionTitle" style="font-size: 1.5rem; font-weight: 700; margin-bottom: 20px; border-left: 4px solid var(--primary-red); padding-left: 10px;">Sua Estante</h2>
         <div id="bookList"></div>
     </div>
 
@@ -491,7 +521,7 @@
     <div id="exploreModal" class="modal-overlay">
         <div class="modal-content" style="max-width: 800px; width: 95%;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                <h2><i class="fa-solid fa-book-globe" style="color: var(--primary-red);"></i> Explorar Gutenberg</h2>
+                <h2><i class="fa-solid fa-book-globe" style="color: var(--primary-red);"></i> Explorar</h2>
                 <span onclick="closeExploreModal()" style="cursor:pointer; font-size:2rem; color:var(--light-text);">&times;</span>
             </div>
             
@@ -547,6 +577,17 @@
         </div>
     </div>
 
+    <div id="toastContainer"></div>
+    <div id="confirmModal">
+        <div class="confirm-box">
+            <p id="confirmMessage"></p>
+            <div class="confirm-actions">
+                <button id="confirmCancelBtn">Cancelar</button>
+                <button id="confirmOkBtn">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/epubjs/dist/epub.min.js"></script>
 
@@ -559,6 +600,35 @@
         let currentCoverBase64 = null;
         let currentEpubArrayBuffer = null;
 
+        // Evita que o app fique girando pra sempre se o proxy da Vercel travar/cair
+        function fetchWithTimeout(url, ms = 12000) {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), ms);
+            return fetch(url, { signal: controller.signal }).finally(() => clearTimeout(timer));
+        }
+
+        const MAX_BOOKS = 10;
+
+        // ─── TOAST / CONFIRM (substitui alert/confirm nativos) ──────────────────────
+        window.showToast = (message, type = 'error', duration = 4000) => {
+            const container = document.getElementById('toastContainer');
+            const el = document.createElement('div');
+            el.className = `toast ${type}`;
+            el.textContent = message;
+            container.appendChild(el);
+            requestAnimationFrame(() => el.classList.add('show'));
+            setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 300); }, duration);
+        };
+
+        window.showConfirm = (message) => new Promise((resolve) => {
+            const modal = document.getElementById('confirmModal');
+            document.getElementById('confirmMessage').textContent = message;
+            modal.style.display = 'flex';
+            const cleanup = (result) => { modal.style.display = 'none'; resolve(result); };
+            document.getElementById('confirmOkBtn').onclick = () => cleanup(true);
+            document.getElementById('confirmCancelBtn').onclick = () => cleanup(false);
+        });
+
         // ─── SIDEBAR ──────────────────────────────────────────────────────────────
         window.toggleSidebar = () => {
             const side = document.getElementById('sidebar');
@@ -566,7 +636,19 @@
             const overlay = document.getElementById('sidebarOverlay');
             overlay.style.display = side.classList.contains('active') ? 'block' : 'none';
         };
-
+        // ─── NAVEGAÇÃO SPA (Alternar Telas) ───
+        window.switchView = (view) => {
+            if (view === 'home') {
+                document.getElementById('homeView').style.display = 'block';
+                document.getElementById('librarySection').style.display = 'none';
+            } else if (view === 'library') {
+                document.getElementById('homeView').style.display = 'none';
+                document.getElementById('librarySection').style.display = 'block';
+                // Garante que a estante esteja atualizada ao abrir
+                renderList(); 
+            }
+            if (document.getElementById('sidebar').classList.contains('active')) toggleSidebar();
+        };
         // ─── BUSCA MOBILE ─────────────────────────────────────────────────────────
         window.toggleSearchMobile = () => {
             document.getElementById('mobileSearchRow').classList.toggle('active');
@@ -700,8 +782,16 @@
                         
                     carregarRecomendacoes(userPreferences);
                 }
-            } catch (error) {
+} catch (error) {
                 console.error("Erro ao buscar dados do perfil:", error);
+            }
+
+            // 🧠 NOVO: Checa se o usuário tem o ticket de retorno do leitor
+            if (localStorage.getItem('staant_return_view') === 'library') {
+                switchView('library');
+                localStorage.removeItem('staant_return_view'); // Rasga o ticket após usar
+            } else {
+                switchView('home'); // Se não tiver ticket, mostra o Início normalmente
             }
 
             renderList();
@@ -709,12 +799,12 @@
 
         // ─── RENDERIZAR (NUVEM) ───────────────────────────────────────────────────
         // ─── CACHE LOCAL DE LIVROS ──────────────────────────────────────────────
-        const BOOKS_CACHE_KEY = 'staant_books_cache';
-        function saveBooksCache(books) {
-            try { localStorage.setItem(BOOKS_CACHE_KEY, JSON.stringify(books)); } catch(_) {}
+        function booksCacheKey(uid) { return `staant_books_cache_${uid}`; }
+        function saveBooksCache(uid, books) {
+            try { localStorage.setItem(booksCacheKey(uid), JSON.stringify(books)); } catch(_) {}
         }
-        function loadBooksCache() {
-            try { return JSON.parse(localStorage.getItem(BOOKS_CACHE_KEY) || 'null'); } catch(_) { return null; }
+        function loadBooksCache(uid) {
+            try { return JSON.parse(localStorage.getItem(booksCacheKey(uid)) || 'null'); } catch(_) { return null; }
         }
         function renderBooks(books, filter = '') {
             const bookList = document.getElementById('bookList');
@@ -728,6 +818,24 @@
                 }
             });
             updateHero(firstBook);
+
+            const currentUser = JSON.parse(localStorage.getItem('staant_user')) || {};
+            const collectionTitleEl = document.getElementById('collectionTitle');
+            if (collectionTitleEl) {
+                collectionTitleEl.textContent = currentUser.role === 'admin'
+                    ? 'Sua Estante'
+                    : `Sua Estante (${books.length}/${MAX_BOOKS})`;
+            }
+
+            document.getElementById('loadingOverlay').classList.add('hidden');
+        }
+
+        function showLoadError() {
+            document.getElementById('featuredTitle').textContent = "Não foi possível carregar sua biblioteca";
+            document.getElementById('featuredAuthor').textContent = "";
+            document.getElementById('featuredSummary').textContent = "Verifique sua conexão com a internet e tente novamente.";
+            document.getElementById('readFeaturedBtn').style.display = "none";
+            document.getElementById('addFeaturedBtn').style.display = "none";
             document.getElementById('loadingOverlay').classList.add('hidden');
         }
 
@@ -737,7 +845,7 @@
             if (!currentUser) return;
 
             // 1. Renderiza cache local imediatamente (zero latência)
-            const cached = loadBooksCache();
+            const cached = loadBooksCache(currentUser.id);
             if (cached && cached.length > 0) renderBooks(cached, filter);
 
             // 2. Busca Firestore em background
@@ -759,28 +867,49 @@
                 const cachedIds = JSON.stringify((cached || []).map(b => b.id).sort());
                 const freshIds  = JSON.stringify(books.map(b => b.id).sort());
                 if (cachedIds !== freshIds || !cached) {
-                    saveBooksCache(books);
+                    saveBooksCache(currentUser.id, books);
                     renderBooks(books, filter);
                 } else {
                     document.getElementById('loadingOverlay').classList.add('hidden');
                 }
             } catch (error) {
                 console.error("Erro ao carregar:", error);
-                document.getElementById('loadingOverlay').classList.add('hidden');
+                if (!cached || cached.length === 0) showLoadError();
+                else document.getElementById('loadingOverlay').classList.add('hidden');
             }
         };
 
-        function createCard(book) {
+function createCard(book) {
             const div = document.createElement('div');
             div.className = 'book-card-modern';
             div.style.backgroundImage = `url('${book.cover || ''}')`;
+            
+            // Progresso agora vem do Firestore (sincroniza entre dispositivos)
+            const progress = book.progress;
+
+            let progressBarHtml = '';
+
+            if (typeof progress === 'number' && progress > 0) {
+                const perc = Math.max(2, Math.round(progress * 100));
+                progressBarHtml = `
+                    <div style="position: absolute; bottom: 0; left: 0; width: 100%; height: 5px; background: rgba(255,255,255,0.2); z-index: 20;">
+                        <div style="width: ${perc}%; height: 100%; background: var(--primary-red); box-shadow: 0 0 8px var(--primary-red); transition: width 0.3s ease;"></div>
+                    </div>
+                `;
+            }
+            const safeTitle = book.title.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+
+            // Precisamos tratar aspas no JSON para o botão Info não quebrar
+            const safeBookJson = JSON.stringify(book).replace(/'/g, "&#39;").replace(/"/g, "&quot;");
+
             div.innerHTML = `
-                <div class="card-overlay">
+                ${progressBarHtml}
+                <div class="card-overlay" style="padding-bottom: 20px;">
                     <p class="card-title">${book.title}</p>
                     <p class="card-author">${book.author}</p>
                     <div class="card-actions">
-                        <button class="read-btn" onclick="openReader('${book.epubUrl}')">Ler</button>
-                        <button class="info-btn" onclick='showInfoByIndex(${JSON.stringify(book)})'><i class="fa-solid fa-info"></i></button>
+                        <button class="read-btn" onclick="openReader('${book.epubUrl}', '${safeTitle}', '${book.id}')">Ler</button>
+                        <button class="info-btn" onclick="showInfoById('${book.id}')"><i class="fa-solid fa-info"></i></button>
                         <button class="remove-btn" onclick="deleteBookCloud('${book.id}', '${book.storagePath}')"><i class="fa-solid fa-trash"></i></button>
                     </div>
                 </div>
@@ -788,54 +917,64 @@
             return div;
         }
 
-        window.openReader = (url) => {
+window.openReader = (url, title, id) => {
             localStorage.setItem('currentEpubUrl', url);
+            if (title) localStorage.setItem('currentBookTitle', title); // O Leitor agora sabe o nome real!
+            if (id) localStorage.setItem('currentBookId', id); else localStorage.removeItem('currentBookId');
+            localStorage.setItem('staant_return_view', 'library');
             window.location.href = 'reader.html';
         };
 
         window.deleteBookCloud = async (id, path) => {
-            if (confirm("Excluir permanentemente da nuvem?")) {
+            const ok = await showConfirm("Excluir permanentemente da nuvem?");
+            if (ok) {
                 try {
                     if (path) await supabase.storage.from('biblioteca').remove([path]);
                     await deleteDoc(doc(db, "books", id));
                     renderList();
-                } catch (e) { console.error(e); }
+                    showToast("Livro excluído.", "success");
+                } catch (e) { console.error(e); showToast("Não foi possível excluir o livro."); }
             }
         };
 
-        window.showInfoByIndex = (book) => {
+        // ─── 2. O NOVO SHOW INFO (Usa apenas o ID, não quebra mais o HTML) ───
+        window.showInfoById = (id) => {
+            const currentUser = JSON.parse(localStorage.getItem('staant_user'));
+            const cachedBooks = (currentUser ? loadBooksCache(currentUser.id) : null) || [];
+            const book = cachedBooks.find(b => b.id === id);
+            if(!book) return;
+            
             document.getElementById('descTitle').textContent = book.title;
             document.getElementById('descAuthor').textContent = book.author;
             document.getElementById('descDescription').textContent = book.description;
             document.getElementById('descCover').src = book.cover || '';
-            document.getElementById('descReadBtn').onclick = () => openReader(book.epubUrl);
+            document.getElementById('descReadBtn').onclick = () => openReader(book.epubUrl, book.title, book.id);
             document.getElementById('descriptionModal').style.display = 'flex';
         };
 
 function updateHero(book) {
-    const fTitle = document.getElementById('featuredTitle');
-    const fAuthor = document.getElementById('featuredAuthor');
-    const fSummary = document.getElementById('featuredSummary');
-    const fBtn = document.getElementById('readFeaturedBtn');
-    const addBtn = document.getElementById('addFeaturedBtn'); // Referência ao novo botão
+            const fTitle = document.getElementById('featuredTitle');
+            const fAuthor = document.getElementById('featuredAuthor');
+            const fSummary = document.getElementById('featuredSummary');
+            const fBtn = document.getElementById('readFeaturedBtn');
+            const addBtn = document.getElementById('addFeaturedBtn');
 
-    if (book) {
-        fTitle.textContent = book.title;
-        fAuthor.textContent = `por ${book.author}`;
-        fSummary.textContent = book.description ? book.description.substring(0, 150) + "..." : "Sem descrição.";
-        fBtn.onclick = () => openReader(book.epubUrl);
-        
-        fBtn.style.display = "block"; // Mostra botão LER
-        addBtn.style.display = "none"; // Esconde botão ADICIONAR
-    } else {
-        fTitle.textContent = "Sua Estante";
-        fAuthor.textContent = "";
-        fSummary.textContent = "Adicione um livro para começar.";
-        
-        fBtn.style.display = "none"; // Esconde botão LER
-        addBtn.style.display = "block"; // Mostra botão ADICIONAR
-    }
-}
+            if (book) {
+                fTitle.textContent = book.title;
+                fAuthor.textContent = `por ${book.author}`;
+                fSummary.textContent = book.description ? book.description.substring(0, 150) + "..." : "Sem descrição.";
+                fBtn.onclick = () => openReader(book.epubUrl, book.title, book.id); // Título adicionado aqui!
+                
+                fBtn.style.display = "block"; 
+                addBtn.style.display = "none"; 
+            } else {
+                fTitle.textContent = "Sua Estante";
+                fAuthor.textContent = "";
+                fSummary.textContent = "Adicione um livro para começar.";
+                fBtn.style.display = "none"; 
+                addBtn.style.display = "block"; 
+            }
+        }
 
         // ─── COMPRESSÃO DE CAPA ───────────────────────────────────────────────────
         async function compressCover(base64Str) {
@@ -859,33 +998,49 @@ function updateHero(book) {
         }
 
         // ─── UPLOAD ───────────────────────────────────────────────────────────────
+        // ─── UPLOAD MANUAL (Com Trava de Limite de 10 Livros) ───
         document.getElementById('bookForm').onsubmit = async (e) => {
             e.preventDefault();
-            if (!currentEpubArrayBuffer) return alert("Processando arquivo...");
+            if (!currentEpubArrayBuffer) return showToast("Aguarde, processando arquivo...", "info");
 
             const btn = document.getElementById('submitBookBtn');
             btn.disabled = true;
-            btn.textContent = "Sincronizando...";
+            btn.textContent = "Verificando espaço...";
 
             const user = JSON.parse(localStorage.getItem('staant_user'));
-            const title = document.getElementById('bookTitleInput').value;
-            const author = document.getElementById('bookAuthorInput').value;
 
             try {
+                // 1. CHECAGEM DE LIMITE DE ESPAÇO
+                const q = query(collection(db, "books"), where("userId", "==", user.id));
+                const snapshot = await getDocs(q);
+                
+                if (snapshot.size >= MAX_BOOKS && user.role !== 'admin') {
+                    showToast(`Limite de ${MAX_BOOKS} livros atingido. Exclua algum título em 'Sua Coleção' antes de adicionar outro.`, "error", 5500);
+                    btn.disabled = false;
+                    btn.textContent = "Adicionar";
+                    return; // Interrompe o upload
+                }
+
+                btn.textContent = "Sincronizando...";
+
+                // 2. Compressão de Capa e Preparação
                 let optimizedCover = await compressCover(currentCoverBase64);
                 if (optimizedCover.length > 500000) optimizedCover = "";
 
+                const title = document.getElementById('bookTitleInput').value;
+                const author = document.getElementById('bookAuthorInput').value;
                 const cleanTitle = title.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
                 const fileExt = window.currentFileType || 'epub';
                 const storagePath = `${user.id}/${Date.now()}_${cleanTitle}.${fileExt}`;
                 const mimeType = fileExt === 'pdf' ? 'application/pdf' : 'application/epub+zip';
                 const fileBlob = new Blob([currentEpubArrayBuffer], { type: mimeType });
 
+                // 3. Upload para o Supabase
                 const { error } = await supabase.storage.from('biblioteca').upload(storagePath, fileBlob);
                 if (error) throw error;
-
                 const { data: urlData } = supabase.storage.from('biblioteca').getPublicUrl(storagePath);
 
+                // 4. Salva no Firestore
                 await addDoc(collection(db, "books"), {
                     userId: user.id,
                     title, author,
@@ -899,9 +1054,13 @@ function updateHero(book) {
 
                 closeModal();
                 renderList();
+                
+                // Opcional: Se ele salvou via Home, leva ele pra estante pra ver o livro novo
+                switchView('library');
+                
             } catch (err) {
                 console.error(err);
-                alert("Erro ao subir para a nuvem.");
+                showToast("Erro ao subir para a nuvem.");
             } finally {
                 btn.disabled = false;
                 btn.textContent = "Adicionar";
@@ -950,9 +1109,16 @@ function updateHero(book) {
     };
     reader.readAsArrayBuffer(file);
     };
-        // FIX: busca desktop E mobile ambas conectadas ao renderList
-        document.getElementById('searchInput').oninput = (e) => renderList(e.target.value);
-        document.getElementById('searchInputMobile').oninput = (e) => renderList(e.target.value);
+        // FIX: busca desktop E mobile ambas conectadas ao renderList, e agora troca pra tela da Coleção
+        function handleSearchInput(term) {
+            if (term.trim() !== '' && document.getElementById('librarySection').style.display === 'none') {
+                document.getElementById('homeView').style.display = 'none';
+                document.getElementById('librarySection').style.display = 'block';
+            }
+            renderList(term);
+        }
+        document.getElementById('searchInput').oninput = (e) => handleSearchInput(e.target.value);
+        document.getElementById('searchInputMobile').oninput = (e) => handleSearchInput(e.target.value);
 
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js');
@@ -981,37 +1147,45 @@ function updateHero(book) {
             loading.style.display = 'block';
 
             try {
-                const response = await fetch(`https://gutendex.com/books?search=${encodeURIComponent(query)}&languages=pt`);
+                // ⚠️ AQUI ENTRA A SUA ROTA NOVA DA VERCEL (/api/search)
+                const urlVercel = `https://staant-proxy.vercel.app/api/search?q=${encodeURIComponent(query)}`;
+                const response = await fetchWithTimeout(urlVercel);
                 const data = await response.json();
                 loading.style.display = 'none';
 
-                const validBooks = data.results.filter(book => book.formats['application/epub+zip']);
-
-                if (validBooks.length === 0) {
-                    resultsContainer.innerHTML = '<p style="grid-column: 1/-1; text-align:center; color:#888;">Nenhum livro EPUB encontrado para essa busca.</p>';
+                if (!data.results || data.results.length === 0) {
+                    resultsContainer.innerHTML = '<p style="grid-column: 1/-1; text-align:center; color:#888;">Nenhum e-book gratuito encontrado em português.</p>';
                     return;
                 }
 
-                validBooks.forEach(book => {
-                    const title = book.title;
-                    const author = book.authors.length > 0 ? book.authors[0].name : 'Autor Desconhecido';
-                    const cover = book.formats['image/jpeg'] || 'https://via.placeholder.com/150x200?text=Sem+Capa';
-                    const epubUrl = book.formats['application/epub+zip'];
-
+data.results.forEach(book => {
                     const card = document.createElement('div');
-                    card.style.cssText = `background: #2a2a2a; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column;`;
+                    card.style.cssText = `background: #2a2a2a; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; position: relative;`;
                     
-                    const safeTitle = title.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-                    const safeAuthor = author.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                    const safeTitle = book.title.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                    const safeAuthor = book.author.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+
+                    // Define a etiqueta com base na API de origem
+                    let iconTag = '';
+                    if (book.source === 'Google Books') {
+                        iconTag = '<i class="fa-brands fa-google"></i> Books';
+                    } else if (book.source === 'Internet Archive') {
+                        iconTag = '<i class="fa-solid fa-building-columns"></i> Archive';
+                    } else if (book.source === 'Gutenberg') {
+                        iconTag = '<i class="fa-solid fa-book-globe"></i> Guten';
+                    } else {
+                        iconTag = '<i class="fa-solid fa-cloud"></i> Extra';
+                    }
 
                     card.innerHTML = `
-                        <div style="height: 180px; background-image: url('${cover}'); background-size: cover; background-position: center;"></div>
+                        <div style="position: absolute; top: 5px; right: 5px; background: rgba(0,0,0,0.8); color: white; font-size: 0.6rem; padding: 3px 6px; border-radius: 4px; z-index: 10;">${iconTag}</div>
+                        <div style="height: 180px; background-image: url('${book.cover}'); background-size: cover; background-position: center;"></div>
                         <div style="padding: 12px; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between;">
                             <div style="margin-bottom: 10px;">
-                                <h4 style="margin: 0 0 4px 0; font-size: 0.85rem; color: white; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${title}</h4>
-                                <p style="margin: 0; font-size: 0.75rem; color: #aaa;">${author}</p>
+                                <h4 style="margin: 0 0 4px 0; font-size: 0.85rem; color: white; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${book.title}</h4>
+                                <p style="margin: 0; font-size: 0.75rem; color: #aaa;">${book.author}</p>
                             </div>
-                            <button onclick="importGutendexBook(this, '${epubUrl}', '${safeTitle}', '${safeAuthor}', '${cover}')"
+                            <button onclick="importGutendexBook(this, '${book.epubUrl}', '${safeTitle}', '${safeAuthor}', '${book.cover}')"
                                     style="background: var(--primary-red); color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: bold; width: 100%; transition: background 0.2s;">
                                 <i class="fa-solid fa-cloud-arrow-down"></i> Salvar
                             </button>
@@ -1020,103 +1194,168 @@ function updateHero(book) {
                     resultsContainer.appendChild(card);
                 });
             } catch (error) {
-                console.error("Erro API Gutendex:", error);
+                console.error("Erro na busca:", error);
                 loading.style.display = 'none';
-                resultsContainer.innerHTML = '<p style="grid-column: 1/-1; text-align:center; color:#ff4d4d;">Erro ao buscar livros. Tente novamente.</p>';
+                const msg = error.name === 'AbortError'
+                    ? 'A busca demorou demais para responder. Tente novamente.'
+                    : 'Erro ao buscar livros.';
+                resultsContainer.innerHTML = `<p style="grid-column: 1/-1; text-align:center; color:#ff4d4d;">${msg}</p>`;
             }
         };
 
-        // ─── CARROSSEL DE RECOMENDAÇÕES INTELIGENTE ───
+// ─── GERADOR DE MÚLTIPLOS CARROSSÉIS (Corrigido e Unificado) ───
         window.carregarRecomendacoes = async (preferences) => {
-            const container = document.getElementById('recommendationsCarousel');
-            const section = document.getElementById('recommendationsSection');
-            const titleEl = document.getElementById('recommendationsTitle');
+            const containerMaster = document.getElementById('multiCarouselsContainer');
+            containerMaster.innerHTML = ''; 
             
-            // Sorteia um gênero das preferências do usuário para a vitrine ser diferente a cada login!
-            const randomGenre = preferences[Math.floor(Math.random() * preferences.length)];
-            
-            const genreNames = {
-                'fiction': 'Ficção', 'science fiction': 'Ficção Científica', 'fantasy': 'Fantasia',
-                'romance': 'Romance', 'mystery': 'Mistério', 'history': 'História', 
-                'adventure': 'Aventura', 'philosophy': 'Filosofia'
+            const genreNames = { 
+                'fiction': 'Ficção', 'science fiction': 'Ficção Científica', 
+                'fantasy': 'Fantasia', 'romance': 'Romance', 
+                'mystery': 'Mistério', 'history': 'História', 
+                'adventure': 'Aventura', 'philosophy': 'Filosofia',
+                'classics': 'Clássicos'
             };
-            
-            titleEl.innerHTML = `Para Você <span style="font-size:0.9rem; color:#888; font-weight:normal; margin-left:10px;">(Baseado em ${genreNames[randomGenre] || randomGenre})</span>`;
-            section.style.display = 'block';
-            container.innerHTML = '<div style="padding: 20px; color: #888;"><i class="fa-solid fa-spinner fa-spin"></i> Separando os melhores livros...</div>';
-            
-            try {
-                // Gutendex permite buscar por tópico (genre)
-                const response = await fetch(`https://gutendex.com/books?topic=${encodeURIComponent(randomGenre)}&languages=pt`);
-                const data = await response.json();
-                
-                // Filtra os que tem EPUB e pega os 10 primeiros
-                const validBooks = data.results.filter(book => book.formats['application/epub+zip']).slice(0, 10);
-                
-                if (validBooks.length === 0) {
-                    section.style.display = 'none';
-                    return;
-                }
-                
-                container.innerHTML = '';
-                
-                validBooks.forEach(book => {
-                    const title = book.title;
-                    const author = book.authors.length > 0 ? book.authors[0].name : 'Autor Desconhecido';
-                    const cover = book.formats['image/jpeg'] || 'https://via.placeholder.com/150x220?text=Sem+Capa';
-                    const epubUrl = book.formats['application/epub+zip'];
-                    
-                    const safeTitle = title.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-                    const safeAuthor = author.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-                    
-                    const card = document.createElement('div');
-                    card.className = 'carousel-card';
-                    card.innerHTML = `
-                        <div class="carousel-card-img" style="background-image: url('${cover}');"></div>
-                        <div class="carousel-card-content">
-                            <div>
-                                <p class="carousel-card-title">${title}</p>
-                                <p class="carousel-card-author">${author}</p>
-                            </div>
-                            <button onclick="importGutendexBook(this, '${epubUrl}', '${safeTitle}', '${safeAuthor}', '${cover}')"
-                                    style="background: var(--primary-red); color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: bold; width: 100%; transition: background 0.2s;">
-                                <i class="fa-solid fa-cloud-arrow-down"></i> Salvar
-                            </button>
+
+            const genresToLoad = preferences.slice(0, 3);
+            if (!genresToLoad.includes('classics')) genresToLoad.push('classics'); 
+
+            // 🧠 MEMÓRIA: Guarda os títulos que já apareceram na tela!
+            const titulosExibidos = new Set();
+
+            // 1. Cria todas as seções de uma vez, na ordem certa, com o spinner
+            genresToLoad.forEach(genre => {
+                const translatedGenre = genreNames[genre] || genre;
+                const sectionHtml = `
+                    <div style="padding: 30px 20px 0 20px;">
+                        <h2 style="font-size: 1.3rem; font-weight: 700; margin-bottom: 15px; border-left: 4px solid var(--primary-red); padding-left: 10px;">${translatedGenre}</h2>
+                        <div id="carousel-${genre}" class="carousel-container">
+                            <div style="padding: 20px; color: #888;"><i class="fa-solid fa-spinner fa-spin"></i> Carregando ${translatedGenre}...</div>
                         </div>
-                    `;
-                    container.appendChild(card);
-                });
-            } catch (error) {
-                console.error("Erro ao carregar recomendações:", error);
-                container.innerHTML = '<div style="padding: 20px; color: #ff4d4d;">Não foi possível carregar as recomendações no momento.</div>';
-            }
+                    </div>
+                `;
+                containerMaster.insertAdjacentHTML('beforeend', sectionHtml);
+            });
+
+            // 2. Busca todos os gêneros em PARALELO (bem mais rápido que um por um)
+            await Promise.all(genresToLoad.map(async (genre) => {
+                const translatedGenre = genreNames[genre] || genre;
+                try {
+                    let finalBooks = [];
+                    
+                    // 🚀 1. Uma única chamada para a Vercel, que já traz as 3 bibliotecas misturadas!
+                    const resVercel = await fetchWithTimeout(`https://staant-proxy.vercel.app/api/search?q=${encodeURIComponent(translatedGenre)}&topic=true`);
+                    const dataVercel = await resVercel.json();
+                    
+                    // Não alteramos mais o 'source', usamos exatamente o que a Vercel mandar!
+                    if (dataVercel.results && dataVercel.results.length > 0) {
+                        finalBooks = dataVercel.results; 
+                    }
+
+                    const carouselEl = document.getElementById(`carousel-${genre}`);
+                    carouselEl.innerHTML = '';
+
+                    let renderedCount = 0;
+
+                    finalBooks.forEach(book => {
+                        // 🛑 VERIFICAÇÃO DE REPETIÇÃO
+                        if (titulosExibidos.has(book.title)) return;
+                        
+                        titulosExibidos.add(book.title);
+                        renderedCount++;
+
+                        const safeTitle = book.title.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                        const safeAuthor = book.author.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                        
+                        // 🏷️ A Lógica das Três Etiquetas!
+                        let iconTag = '';
+                        if (book.source === 'Google Books') {
+                            iconTag = '<i class="fa-brands fa-google"></i> Books';
+                        } else if (book.source === 'Internet Archive') {
+                            iconTag = '<i class="fa-solid fa-building-columns"></i> Archive';
+                        } else if (book.source === 'Gutenberg') {
+                            iconTag = '<i class="fa-solid fa-book-globe"></i> Guten';
+                        } else {
+                            iconTag = '<i class="fa-solid fa-cloud"></i> Extra';
+                        }
+
+                        const card = document.createElement('div');
+                        card.className = 'carousel-card';
+                        card.innerHTML = `
+                            <div class="carousel-card-img" style="background-image: url('${book.cover}'); position: relative;">
+                                <div style="position: absolute; top: 5px; right: 5px; background: rgba(0,0,0,0.8); color: white; font-size: 0.6rem; padding: 3px 6px; border-radius: 4px; z-index: 10;">${iconTag}</div>
+                            </div>
+                            <div class="carousel-card-content">
+                                <div>
+                                    <p class="carousel-card-title">${book.title}</p>
+                                    <p class="carousel-card-author">${book.author}</p>
+                                </div>
+                                <button onclick="importGutendexBook(this, '${book.epubUrl}', '${safeTitle}', '${safeAuthor}', '${book.cover}')"
+                                        style="background: var(--primary-red); color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: bold; width: 100%; transition: background 0.2s;">
+                                    <i class="fa-solid fa-cloud-arrow-down"></i> Salvar
+                                </button>
+                            </div>
+                        `;
+                        carouselEl.appendChild(card);
+                    });
+
+                    // Caso todos os livros dessa fileira já tivessem aparecido antes
+                    if (renderedCount === 0) {
+                        carouselEl.innerHTML = '<div style="color: #666; padding: 20px;">Nenhum livro novo encontrado nesta categoria.</div>';
+                    }
+
+                } catch (err) {
+                    console.error("Erro ao carregar o carrossel:", err);
+                    const msg = err.name === 'AbortError' ? 'O servidor demorou demais para responder.' : 'Erro ao carregar.';
+                    document.getElementById(`carousel-${genre}`).innerHTML = `<div style="color: #ff4d4d; padding: 20px;">${msg}</div>`;
+                }
+            }));
         };
 // Importação Inteligente usando o seu Backend
-        // Função de importação (Usando o seu próprio Backend na Vercel)
+       // Função de importação (Com Trava de Limite de 10 Livros)
         window.importGutendexBook = async (btn, epubUrl, title, author, coverUrl) => {
             btn.disabled = true;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Baixando...';
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Verificando...';
 
             try {
-                // 1. Chama o seu servidor proxy na Vercel
-                // COLOCAR A SUA URL DA VERCEL AQUI ABAIXO:
+                const user = JSON.parse(localStorage.getItem('staant_user'));
+
+                const q = query(collection(db, "books"), where("userId", "==", user.id));
+                const snapshot = await getDocs(q);
+
+                // 1. CHECAGEM DE DUPLICATA (evita o mesmo clássico duas vezes na estante)
+                const jaExiste = snapshot.docs.some(d => (d.data().title || '').trim().toLowerCase() === title.trim().toLowerCase());
+                if (jaExiste) {
+                    showToast("Este livro já está na sua estante.", "info");
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-check"></i> Já na Estante';
+                    btn.style.background = "#555";
+                    return;
+                }
+
+                // 2. CHECAGEM DE LIMITE DE ESPAÇO (Máximo 10 livros) — ignorada para o admin
+                if (snapshot.size >= MAX_BOOKS && user.role !== 'admin') {
+                    showToast(`Limite de ${MAX_BOOKS} livros atingido. Exclua algum título em 'Sua Coleção' antes de baixar outro.`, "error", 5500);
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-down"></i> Salvar';
+                    btn.style.background = "var(--primary-red)";
+                    return; // Interrompe o processo e não gasta o seu servidor!
+                }
+
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Baixando...';
+
+                // 2. Chama o seu servidor proxy na Vercel
                 const meuBackendUrl = `https://staant-proxy.vercel.app/api/download?url=${encodeURIComponent(epubUrl)}`;
-                
                 const response = await fetch(meuBackendUrl);
                 
-                if (!response.ok) {
-                    throw new Error(`Erro no servidor backend da Vercel: ${response.status}`);
-                }
+                if (!response.ok) throw new Error(`Erro no servidor backend da Vercel: ${response.status}`);
                 
                 const blob = await response.blob();
                 btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Salvando...';
 
-                // 2. Prepara os dados para o Supabase
-                const user = JSON.parse(localStorage.getItem('staant_user'));
+                // 3. Upload invisível para o Supabase
                 const cleanTitle = title.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
                 const storagePath = `${user.id}/${Date.now()}_${cleanTitle.substring(0, 30)}.epub`;
 
-                // 3. Upload invisível para o Supabase
                 const { error: uploadError } = await supabase.storage.from('biblioteca').upload(storagePath, blob);
                 if (uploadError) throw uploadError;
                 const { data: urlData } = supabase.storage.from('biblioteca').getPublicUrl(storagePath);
@@ -1124,37 +1363,27 @@ function updateHero(book) {
                 // 4. Salva no Firestore
                 await addDoc(collection(db, "books"), {
                     userId: user.id,
-                    title: title,
-                    author: author,
-                    description: "Clássico importado do Projeto Gutenberg.",
+                    title: title, author: author,
+                    description: "Clássico importado digitalmente.",
                     epubUrl: urlData.publicUrl,
                     storagePath: storagePath,
-                    cover: coverUrl,
-                    fileType: 'epub',
-                    timestamp: Date.now()
+                    cover: coverUrl, fileType: 'epub', timestamp: Date.now()
                 });
 
                 // 5. Sucesso Visual!
                 btn.style.background = "#22c55e";
                 btn.innerHTML = '<i class="fa-solid fa-check"></i> Na Estante';
-                renderList();
+                renderList(); // Atualiza a estante em background
 
             } catch (error) {
-                console.error("Erro na importação via Vercel:", error);
-                
-                // Fallback manual de segurança
                 btn.disabled = false;
-                btn.style.background = "#3b82f6"; // Fica Azul
+                btn.style.background = "#3b82f6"; 
                 btn.innerHTML = '<i class="fa-solid fa-download"></i> Baixar Manualmente';
-                
                 btn.onclick = () => {
-                    const secureEpubUrl = epubUrl.replace('http://', 'https://');
-                    window.open(secureEpubUrl, '_blank'); 
-                    closeExploreModal();
-                    openAddModal(); 
+                    window.open(epubUrl.replace('http://', 'https://'), '_blank'); 
+                    closeExploreModal(); openAddModal(); 
                 };
-                
-                alert("Falha na importação. Clique em 'Baixar Manualmente' para obter o arquivo.");
+                showToast("🔒 Este livro possui proteção na biblioteca original. Use o botão azul 'Baixar Manualmente'.", "error", 6000);
             }
         };
     </script>

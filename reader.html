@@ -37,8 +37,12 @@
             width: 100%; z-index: 200;
             transition: transform 0.3s ease, opacity 0.3s ease;
         }
-        :fullscreen #ui-wrapper { transform: translateY(-90%); opacity: 0; }
-        :fullscreen #ui-wrapper:hover { transform: translateY(0); opacity: 1; }
+        /* Chrome imersivo (rolagem estilo YouVersion e modo tela cheia): a barra some
+           via JS/toque, não por :hover (que não existe em toque). */
+        #ui-wrapper.ui-hidden { transform: translateY(-100%); opacity: 0; pointer-events: none; }
+        /* A barra de fonte (embaixo) some junto com a barra superior — !important pra
+           vencer as classes do Tailwind (opacity-40/hover:opacity-100) sempre. */
+        #fontSizeBar.ui-hidden { opacity: 0 !important; pointer-events: none; }
 
         .glass-header {
             background: rgba(31, 31, 31, 0.98);
@@ -59,11 +63,14 @@
             align-items: flex-start;
         }
         :fullscreen #reader-container { top: 0; height: 100vh; }
+        /* Acompanha o header sumindo na rolagem imersiva */
+        #reader-container.chrome-hidden { top: 0; height: 100vh; }
 
         /* ── ÁREA DE LEITURA — modo scroll ── */
         #reader-container.scroll-mode {
             overflow-y: auto;
             overflow-x: hidden;
+            transition: top 0.3s ease, height 0.3s ease;
         }
 
         /* viewer — modo páginas */
@@ -122,13 +129,17 @@
         }
         #scroll-loading.active { display: block; }
 
-        /* Overlay de toque */
-        #touch-overlay {
+        /* Zonas de toque para virar página — só nas bordas, o centro fica livre
+           pra seleção nativa de texto (marcar destaques) chegar até o conteúdo. */
+        .touch-zone {
             position: absolute;
-            inset: 0; z-index: 10;
+            top: 0; bottom: 0; width: 25%;
+            z-index: 10;
             background: transparent;
             touch-action: none;
         }
+        .touch-zone-left  { left: 0; }
+        .touch-zone-right { right: 0; }
 
         .tap-feedback {
             position: fixed;
@@ -148,6 +159,14 @@
             pointer-events: none; overflow: hidden; display: none;
         }
         #page-slide { position: absolute; inset: 0; will-change: transform, opacity; }
+
+        /* Indicador de carregamento do PDF */
+        #pdf-loading {
+            display: none; width: 100%; text-align: center;
+            padding: 60px 20px; color: #888; font-size: 0.9rem;
+        }
+        #pdf-loading.active { display: block; }
+
 
         /* Controles */
         .nav-button {
@@ -170,6 +189,12 @@
 <body>
 
     <div id="tapFeedback" class="tap-feedback"></div>
+
+    <div id="readerError" style="display:none; position:fixed; inset:0; z-index:5000; background:var(--dark-bg); flex-direction:column; align-items:center; justify-content:center; gap:16px; text-align:center; padding:20px;">
+        <i class="fa-solid fa-triangle-exclamation" style="font-size:2.5rem; color:var(--primary-red);"></i>
+        <p id="readerErrorMsg" style="max-width:320px; color:#ccc;">Não foi possível carregar este livro.</p>
+        <button onclick="window.location.href='index.html'" style="background:var(--primary-red);color:#fff;border:none;padding:12px 24px;border-radius:8px;font-weight:bold;cursor:pointer;">Voltar à Biblioteca</button>
+    </div>
 
     <div id="ui-wrapper">
         <header class="glass-header w-full h-14 flex items-center px-4 justify-between">
@@ -223,21 +248,26 @@
         <!-- Modo páginas -->
         <div id="viewer"></div>
         <div id="page-transition"><div id="page-slide"></div></div>
-        <div id="touch-overlay"></div>
+        <div id="touch-zone-left" class="touch-zone touch-zone-left"></div>
+        <div id="touch-zone-right" class="touch-zone touch-zone-right"></div>
         <!-- Modo scroll -->
         <div id="scroll-loading">
             <div style="width:32px;height:32px;border:3px solid #333;border-top-color:#e50914;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px;"></div>
-            Carregando livro completo...
+            Carregando livro...
         </div>
         <div id="scroll-viewer"></div>
         <div id="pdf-viewer" style="display: none; width: 100%; height: 100%; overflow-y: auto; justify-content: center; align-items: flex-start; padding: 20px;">
+            <div id="pdf-loading">
+                <div style="width:32px;height:32px;border:3px solid #333;border-top-color:#e50914;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px;"></div>
+                Carregando PDF...
+            </div>
             <canvas id="pdf-canvas" style="max-width: 100%; box-shadow: 0 0 20px rgba(0,0,0,0.5); background-color: white;"></canvas>
         </div>
     </div>
 
     <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
 
-    <div class="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 bg-[#1f1f1f]/90 backdrop-blur-md px-6 py-3 rounded-2xl border border-gray-700 flex items-center gap-6 shadow-2xl opacity-40 hover:opacity-100 transition-opacity">
+    <div id="fontSizeBar" class="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 bg-[#1f1f1f]/90 backdrop-blur-md px-6 py-3 rounded-2xl border border-gray-700 flex items-center gap-6 shadow-2xl opacity-40 hover:opacity-100 transition-opacity">
         <button onclick="changeFontSize(-2)" class="text-gray-400 hover:text-white transition-colors p-2">
             <span class="text-sm font-bold italic">A</span>
         </button>
@@ -253,14 +283,20 @@
     <script src="https://cdn.jsdelivr.net/npm/epubjs/dist/epub.min.js"></script>
 
     <script type="module">
-        import { auth } from './firebase-config.js';
+        import { auth, db } from './firebase-config.js';
         import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { doc, getDoc, updateDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         let pdfDoc = null, pageNum = 1, pageIsRendering = false, pageNumIsPending = null;
         let book, rendition;
         let currentSelection = null;
         let isNavigating     = false;
         let lastTouchTime    = 0;
+        let bookKey          = ''; // Identidade estável do livro p/ progresso, posição e destaques (ID > título)
+        let isCloudBook      = false;   // true quando o livro vem do Firestore/Supabase (não de um arquivo local)
+        let canSaveProgress  = false;   // só grava progresso após ~1min de leitura de fato
+        let cloudBookData    = null;    // snapshot do doc do livro (progress/position salvos)
+        let saveProgressTimer = null;
 
         const THEME_KEY     = 'staant_theme';
         const FONT_KEY      = 'staant_font_size';
@@ -275,14 +311,16 @@
 async function initReader() {
             const cloudUrl = localStorage.getItem('currentEpubUrl');
             const localId  = localStorage.getItem('currentBookId');
-            
+
             if (cloudUrl) {
+                isCloudBook = true;
                 // Se a URL contém .pdf, carrega o leitor novo. Senão, vai de epub.
-                if (cloudUrl.toLowerCase().includes('.pdf')) {
-                    loadPdf(cloudUrl);
-                } else {
-                    loadEpub(cloudUrl);
-                }
+                const loadPromise = cloudUrl.toLowerCase().includes('.pdf') ? loadPdf(cloudUrl) : loadEpub(cloudUrl);
+                // Evita ficar girando "Carregando..." pra sempre se o link estiver quebrado/travado
+                Promise.race([
+                    loadPromise,
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 25000))
+                ]).catch(showReaderError);
             } else if (localId) {
                 const req = indexedDB.open('STAANT_DB', 2);
                 req.onsuccess = (e) => {
@@ -301,46 +339,134 @@ async function initReader() {
             return { w, h };
         }
 
+        // Chrome imersivo: esconde/mostra a barra de cima E a de fonte juntas
+        // (rolagem estilo YouVersion e modo tela cheia usam as mesmas duas funções).
+        function hideChrome() {
+            document.getElementById('ui-wrapper').classList.add('ui-hidden');
+            document.getElementById('fontSizeBar').classList.add('ui-hidden');
+            document.getElementById('reader-container').classList.add('chrome-hidden');
+        }
+        function showChrome() {
+            document.getElementById('ui-wrapper').classList.remove('ui-hidden');
+            document.getElementById('fontSizeBar').classList.remove('ui-hidden');
+            document.getElementById('reader-container').classList.remove('chrome-hidden');
+        }
+
+        // Link quebrado, arquivo corrompido ou carregamento travado: avisa em vez de girar pra sempre
+        function showReaderError(err) {
+            console.error('Erro ao carregar livro:', err);
+            const msg = (err && err.message === 'timeout')
+                ? 'Este livro está demorando demais para carregar. O link pode estar quebrado.'
+                : 'Não foi possível abrir este livro. O arquivo pode estar corrompido ou o link quebrado.';
+            document.getElementById('readerErrorMsg').textContent = msg;
+            document.getElementById('readerError').style.display = 'flex';
+        }
+
+        // Grava progresso no Firestore (com debounce) — só depois de ~1min de leitura de verdade
+        function saveProgress(fields) {
+            if (!isCloudBook || !canSaveProgress || !bookKey) return;
+            clearTimeout(saveProgressTimer);
+            saveProgressTimer = setTimeout(() => {
+                updateDoc(doc(db, 'books', bookKey), { ...fields, lastReadAt: Date.now() })
+                    .catch(e => console.error('Erro ao salvar progresso:', e));
+            }, 1200);
+        }
+
+        // ─── DESTAQUES: armazenamento local + sync opcional no Firestore ───────────
+        function getHighlights() {
+            return JSON.parse(localStorage.getItem(`hl_${bookKey}`)) || [];
+        }
+        function setHighlights(hls) {
+            localStorage.setItem(`hl_${bookKey}`, JSON.stringify(hls));
+        }
+        // Nunca sobrescreve o array inteiro (evita apagar destaque feito em outro aparelho)
+        function syncHighlight(op, entry) {
+            if (!isCloudBook || !bookKey) return;
+            updateDoc(doc(db, 'books', bookKey), { highlights: op === 'add' ? arrayUnion(entry) : arrayRemove(entry) })
+                .catch(e => console.error('Erro ao sincronizar destaque:', e));
+        }
+        // Mescla os destaques vindos do Firestore com os locais (sem duplicar)
+        function mergeCloudHighlights() {
+            if (!cloudBookData?.highlights?.length) return;
+            const local = getHighlights();
+            const merged = [...local];
+            cloudBookData.highlights.forEach(h => {
+                const exists = merged.some(m => (h.cfi && m.cfi === h.cfi) || (h.id && m.id === h.id));
+                if (!exists) merged.push(h);
+            });
+            setHighlights(merged);
+        }
+
         // ── CARREGAR EPUB ─────────────────────────────────────────────────────────────
+// ── CARREGAR EPUB ─────────────────────────────────────────────────────────────
         async function loadEpub(source, fallbackTitle = 'Livro') {
             book = ePub(source);
             await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
             const meta  = await book.loaded.metadata;
-            const title = meta.title || fallbackTitle;
+            
+            // 🧠 A CURA: O Leitor agora puxa o Título Oficial que o index.html enviou!
+            const dbTitle = localStorage.getItem('currentBookTitle');
+            const title = dbTitle || meta.title || fallbackTitle;
+
             document.getElementById('bookTitle').textContent = title;
+
+            // Usa o ID do livro (Firestore) como chave de progresso/destaques quando disponível,
+            // pra não misturar marcações de dois livros que tenham o mesmo título.
+            bookKey = localStorage.getItem('currentBookId') || title;
+
+            if (isCloudBook && bookKey) {
+                try {
+                    const snap = await getDoc(doc(db, 'books', bookKey));
+                    if (snap.exists()) { cloudBookData = snap.data(); mergeCloudHighlights(); }
+                } catch (e) { console.error('Erro ao buscar progresso salvo:', e); }
+                setTimeout(() => { canSaveProgress = true; }, 60000);
+            }
 
             const readMode   = localStorage.getItem(READ_MODE_KEY) || 'paginated';
             const savedTheme = localStorage.getItem(THEME_KEY) || 'sepia';
 
             if (readMode === 'scroll') {
-                await loadScrollMode(title, savedTheme);
+                await loadScrollMode(bookKey, savedTheme);
             } else {
-                await loadPagedMode(title, savedTheme);
+                await loadPagedMode(bookKey, savedTheme);
             }
         }
-async function loadPdf(url) {
-            // Esconde os elementos do EPUB e mostra o do PDF
+
+        // ── CARREGAR PDF ──────────────────────────────────────────────────────────────
+        async function loadPdf(url) {
             document.getElementById('viewer').style.display = 'none';
             document.getElementById('scroll-viewer').classList.remove('active');
             document.getElementById('pdf-viewer').style.display = 'flex';
+            document.getElementById('pdf-canvas').style.display = 'none';
+            document.getElementById('pdf-loading').classList.add('active');
             document.getElementById('bookTitle').textContent = "Carregando PDF...";
-            
+
             try {
                 pdfDoc = await pdfjsLib.getDocument(url).promise;
-                document.getElementById('bookTitle').textContent = "Leitura em PDF";
                 
-                // ---> ADICIONE ESTA VERIFICAÇÃO AQUI <---
-                const title = "Leitura em PDF"; // O título base que estamos usando para o PDF
-                const savedPos = localStorage.getItem(`pos_${title}`);
-                
-                // Se existir uma página salva, usa ela. Se não, começa na 1.
+                // 🧠 O PDF TAMBÉM USA O TÍTULO OFICIAL AGORA
+                const dbTitle = localStorage.getItem('currentBookTitle');
+                const title = dbTitle || "Leitura em PDF";
+
+                document.getElementById('bookTitle').textContent = title;
+                bookKey = localStorage.getItem('currentBookId') || title;
+
+                if (isCloudBook && bookKey) {
+                    try {
+                        const snap = await getDoc(doc(db, 'books', bookKey));
+                        if (snap.exists()) cloudBookData = snap.data();
+                    } catch (e) { console.error('Erro ao buscar progresso salvo:', e); }
+                    setTimeout(() => { canSaveProgress = true; }, 60000);
+                }
+
+                const savedPos = cloudBookData?.position ?? localStorage.getItem(`pos_${bookKey}`);
                 pageNum = (savedPos && !isNaN(savedPos)) ? parseInt(savedPos) : 1;
-                
+
                 renderPdfPage(pageNum);
             } catch (err) {
                 console.error("Erro ao carregar PDF:", err);
-                alert("Erro ao carregar o arquivo PDF.");
+                showReaderError(err);
             }
         }
 
@@ -360,6 +486,8 @@ function renderPdfPage(num) {
                 
                 page.render({ canvasContext: ctx, viewport: viewport }).promise.then(() => {
                     pageIsRendering = false;
+                    document.getElementById('pdf-loading').classList.remove('active');
+                    canvas.style.display = '';
                     if (pageNumIsPending !== null) {
                         renderPdfPage(pageNumIsPending);
                         pageNumIsPending = null;
@@ -372,19 +500,19 @@ function renderPdfPage(num) {
                 document.getElementById('progressBar').style.width = `${pct}%`;
                 document.getElementById('progressPercent').textContent = `${pct}%`;
 
-                // ---> ADICIONE ESTAS DUAS LINHAS AQUI <---
-                const title = document.getElementById('bookTitle').textContent;
-                localStorage.setItem(`pos_${title}`, num);
+                saveProgress({ position: num, progress: pct / 100 });
             });
         }
         // ── MODO PÁGINAS ──────────────────────────────────────────────────────────────
         async function loadPagedMode(title, savedTheme) {
             document.getElementById('viewer').style.display           = '';
-            document.getElementById('touch-overlay').style.display    = '';
+            document.getElementById('touch-zone-left').style.display  = '';
+            document.getElementById('touch-zone-right').style.display = '';
             document.getElementById('page-transition').style.display  = '';
             document.getElementById('scroll-viewer').classList.remove('active');
             document.getElementById('scroll-loading').classList.remove('active');
             document.getElementById('reader-container').classList.remove('scroll-mode');
+            showChrome();
             document.getElementById('prevBtn').style.visibility = '';
             document.getElementById('nextBtn').style.visibility = '';
 
@@ -402,8 +530,18 @@ function renderPdfPage(num) {
             document.getElementById('themeDropdown').value = savedTheme;
             registerHooks();
 
-            const savedPos = localStorage.getItem(`pos_${title}`);
+            const savedPos = cloudBookData?.position ?? localStorage.getItem(`pos_${title}`);
             await rendition.display(savedPos || undefined);
+
+            // Salva posição e porcentagem no Firestore a cada troca de página
+            rendition.on('relocated', (location) => {
+                const fields = { position: location.start.cfi };
+                try {
+                    const percentage = book.locations.percentageFromCfi(location.start.cfi);
+                    if (percentage !== null && percentage >= 0) fields.progress = percentage;
+                } catch (e) {}
+                saveProgress(fields);
+            });
 
             document.getElementById('prevBtn').onclick = () => navigate('prev');
             document.getElementById('nextBtn').onclick = () => navigate('next');
@@ -413,25 +551,41 @@ function renderPdfPage(num) {
             drop.innerHTML = nav.toc.map(c => `<option value="${c.href}">${c.label}</option>`).join('');
             drop.onchange  = (e) => rendition.display(e.target.value);
 
-            book.ready
-                .then(() => book.locations.generate(512))
-                .then(() => { updateUI(); renderAllHighlights(); renderHighlightsList(); });
+book.ready.then(() => {
+                // Destaques não precisam do índice de localizações (só do CFI) — mostra logo
+                renderAllHighlights();
+                renderHighlightsList();
+
+                book.locations.generate(512).then(() => {
+                    updateUI();
+
+                    // Garante que a porcentagem seja salva assim que o livro termina de processar!
+                    const curCfi = rendition.currentLocation()?.start?.cfi;
+                    if (curCfi) {
+                        try {
+                            const percentage = book.locations.percentageFromCfi(curCfi);
+                            if (percentage !== null && percentage >= 0) saveProgress({ position: curCfi, progress: percentage });
+                        } catch (e) {}
+                    }
+                });
+            });
         }
 
-        // ── MODO SCROLL — renderiza todos os capítulos direto no DOM ─────────────────
-        async function loadScrollMode(title, savedTheme) {
-            document.getElementById('viewer').style.display          = 'none';
-            document.getElementById('touch-overlay').style.display   = 'none';
-            document.getElementById('page-transition').style.display = 'none';
-            document.getElementById('prevBtn').style.visibility      = 'hidden';
-            document.getElementById('nextBtn').style.visibility      = 'hidden';
-            document.getElementById('pageCounter').textContent       = 'Carregando...';
+async function loadScrollMode(title, savedTheme) {
+            document.getElementById('viewer').style.display           = 'none';
+            document.getElementById('touch-zone-left').style.display  = 'none';
+            document.getElementById('touch-zone-right').style.display = 'none';
+            document.getElementById('page-transition').style.display  = 'none';
+            document.getElementById('prevBtn').style.visibility       = 'hidden';
+            document.getElementById('nextBtn').style.visibility       = 'hidden';
+            document.getElementById('pageCounter').textContent        = 'Carregando...';
 
             const container = document.getElementById('reader-container');
             const scrollEl  = document.getElementById('scroll-viewer');
             const loadingEl = document.getElementById('scroll-loading');
 
             container.classList.add('scroll-mode');
+            showChrome();
             loadingEl.classList.add('active');
             scrollEl.classList.remove('active');
             scrollEl.innerHTML = '';
@@ -442,15 +596,23 @@ function renderPdfPage(num) {
 
             await book.ready;
 
-            // Itera pela spine usando a API correta do epub.js
+            const savedPct = (cloudBookData?.progress != null)
+                ? cloudBookData.progress * 100
+                : parseFloat(localStorage.getItem(`scroll_pos_${title}`) || '0');
+            const isResuming = savedPct > 0;
+
+            // Itera pela spine usando a API correta do epub.js, um capítulo por vez
             let chapterIndex = 0;
             let section = book.spine.first();
 
-            while (section) {
+            async function loadOneChapter() {
+                if (!section) return false;
+                const currentSection = section;
+                section = section.next();
                 try {
-                    const contents = await section.load(book.load.bind(book));
+                    const contents = await currentSection.load(book.load.bind(book));
                     const doc = (contents && contents.nodeType) ? contents
-                              : (section.document || null);
+                              : (currentSection.document || null);
 
                     let html = '';
                     if (doc) {
@@ -473,7 +635,7 @@ function renderPdfPage(num) {
                             try {
                                 const src = img.getAttribute('src');
                                 // Constrói path absoluto dentro do ZIP
-                                const basePath = (section.canonical || section.href || '').replace(/[^/]*$/, '');
+                                const basePath = (currentSection.canonical || currentSection.href || '').replace(/[^/]*$/, '');
                                 const fullPath = src.startsWith('/')
                                     ? src.slice(1)
                                     : (basePath + src).replace(/[^/]+\/\.\.\//g, '');
@@ -495,20 +657,49 @@ function renderPdfPage(num) {
                         chapterIndex++;
                     }
 
-                    section.unload && section.unload();
+                    currentSection.unload && currentSection.unload();
                 } catch(err) {
-                    console.warn('Capítulo ignorado:', section.href, err);
+                    console.warn('Capítulo ignorado:', currentSection.href, err);
                 }
+                return true;
+            }
 
-                section = section.next();
+            if (isResuming) {
+                // Retomando leitura: carrega o livro todo pra restaurar a % com precisão
+                while (await loadOneChapter()) {}
+            } else {
+                // Começando do zero: carrega só o suficiente pra encher a tela e revelar rápido
+                const targetHeight = (container.clientHeight || window.innerHeight) * 2;
+                while (section && scrollEl.scrollHeight < targetHeight) {
+                    await loadOneChapter();
+                }
             }
 
             loadingEl.classList.remove('active');
             scrollEl.classList.add('active');
 
-            // ── RESTAURA POSIÇÃO SALVA ────────────────────────────────────────────────
-            const scrollKey = `scroll_pos_${title}`;
-            const savedPct  = parseFloat(localStorage.getItem(scrollKey) || '0');
+            // Continua carregando o resto do livro sob demanda, conforme o usuário se aproxima do fim
+            if (section) {
+                const sentinel = document.createElement('div');
+                sentinel.style.height = '1px';
+                scrollEl.appendChild(sentinel);
+                let loadingMore = false;
+                const observer = new IntersectionObserver((entries) => {
+                    if (!entries[0].isIntersecting || loadingMore || !section) return;
+                    loadingMore = true;
+                    sentinel.remove();
+                    (async () => {
+                        const targetHeight = scrollEl.scrollHeight + (container.clientHeight || window.innerHeight);
+                        while (section && scrollEl.scrollHeight < targetHeight) { await loadOneChapter(); }
+                        if (section) { scrollEl.appendChild(sentinel); observer.observe(sentinel); }
+                        else observer.disconnect();
+                        loadingMore = false;
+                    })();
+                }, { root: container, rootMargin: '600px' });
+                observer.observe(sentinel);
+            }
+
+            // ── RESTAURA POSIÇÃO SALVA (Firestore, com fallback pro localStorage antigo) ──
             if (savedPct > 0) {
                 // Aguarda o layout estabilizar antes de rolar
                 requestAnimationFrame(() => {
@@ -523,12 +714,18 @@ function renderPdfPage(num) {
                 document.getElementById('pageCounter').textContent = '↕ Rolagem';
             }
 
-            // ── SALVA POSIÇÃO E ATUALIZA PROGRESSO AO ROLAR ──────────────────────────
+            // ── SALVA POSIÇÃO, ATUALIZA PROGRESSO E ESCONDE/MOSTRA O CHROME AO ROLAR ──
             let saveTimer = null;
             container.addEventListener('scroll', () => {
+                const top = container.scrollTop;
                 const max = container.scrollHeight - container.clientHeight;
+
+                // Rolagem imersiva estilo YouVersion: some assim que sai do topo, volta no topo.
+                // Fora isso, só um toque na tela revela de novo (ver listener de click abaixo).
+                if (top <= 8) showChrome(); else hideChrome();
+
                 if (max <= 0) return;
-                const pct = Math.round((container.scrollTop / max) * 100);
+                const pct = Math.round((top / max) * 100);
                 document.getElementById('progressBar').style.width     = `${pct}%`;
                 document.getElementById('progressPercent').textContent = `${pct}%`;
                 document.getElementById('pageCounter').textContent     = `${pct}% lido`;
@@ -536,9 +733,16 @@ function renderPdfPage(num) {
                 // Debounce: salva 1s após parar de rolar
                 clearTimeout(saveTimer);
                 saveTimer = setTimeout(() => {
-                    localStorage.setItem(scrollKey, pct);
+                    saveProgress({ progress: pct / 100 });
                 }, 1000);
             }, { passive: true });
+
+            // Tocar na tela (fora de uma seleção de texto) revela o chrome de novo
+            container.addEventListener('click', () => {
+                if (!window.getSelection().isCollapsed) return;
+                tryEnterRealFullscreen();
+                showChrome();
+            });
 
             // Índice de capítulos
             const nav  = await book.loaded.navigation;
@@ -622,38 +826,43 @@ function navigate(direction) {
             requestAnimationFrame(step);
         }
 
-        // ── OVERLAY DE TOQUE ──────────────────────────────────────────────────────────
+        // ── ZONAS DE TOQUE ── esquerda/direita viram página; o centro fica sempre livre
+        // (sem overlay nenhum ali) pra seleção nativa de texto funcionar de verdade.
         (function setupTouch() {
-            const overlay  = document.getElementById('touch-overlay');
             const feedback = document.getElementById('tapFeedback');
-            let tx0 = 0, ty0 = 0, t0 = 0;
             function showFeedback(x, y) {
                 feedback.style.left = x + 'px'; feedback.style.top = y + 'px';
                 feedback.classList.add('show');
                 setTimeout(() => feedback.classList.remove('show'), 300);
             }
-            overlay.addEventListener('touchstart', (e) => {
-                tx0 = e.changedTouches[0].clientX; ty0 = e.changedTouches[0].clientY; t0 = Date.now();
-            }, { passive: true });
-            overlay.addEventListener('touchend', (e) => {
-                if (isNavigating) return;
-                const touch = e.changedTouches[0];
-                const dx = touch.clientX - tx0, dy = touch.clientY - ty0, dt = Date.now() - t0;
-                lastTouchTime = Date.now();
-                if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5 && dt < 400) {
-                    e.preventDefault(); showFeedback(touch.clientX, touch.clientY);
-                    dx < 0 ? navigate('next') : navigate('prev'); return;
-                }
-                if (dt < 250 && Math.abs(dx) < 15 && Math.abs(dy) < 15) {
-                    const cw = overlay.clientWidth;
-                    if (touch.clientX < cw * 0.25) { e.preventDefault(); showFeedback(touch.clientX, touch.clientY); navigate('prev'); }
-                    else if (touch.clientX > cw * 0.75) { e.preventDefault(); showFeedback(touch.clientX, touch.clientY); navigate('next'); }
-                    else { overlay.style.pointerEvents = 'none'; setTimeout(() => { overlay.style.pointerEvents = ''; }, 400); }
-                }
-            }, { passive: false });
-            overlay.addEventListener('click', (e) => {
-                if (Date.now() - lastTouchTime < 500) { e.stopPropagation(); e.preventDefault(); }
-            }, true);
+            function bindZone(zone, tapDirection) {
+                let tx0 = 0, ty0 = 0, t0 = 0;
+                zone.addEventListener('touchstart', (e) => {
+                    tx0 = e.changedTouches[0].clientX; ty0 = e.changedTouches[0].clientY; t0 = Date.now();
+                }, { passive: true });
+                zone.addEventListener('touchend', (e) => {
+                    if (isNavigating) return;
+                    const touch = e.changedTouches[0];
+                    const dx = touch.clientX - tx0, dy = touch.clientY - ty0, dt = Date.now() - t0;
+                    lastTouchTime = Date.now();
+                    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5 && dt < 400) {
+                        e.preventDefault(); showFeedback(touch.clientX, touch.clientY);
+                        dx < 0 ? navigate('next') : navigate('prev'); return;
+                    }
+                    if (dt < 250 && Math.abs(dx) < 15 && Math.abs(dy) < 15) {
+                        e.preventDefault(); showFeedback(touch.clientX, touch.clientY);
+                        // Não revela o chrome aqui: virar página não pode reacender o cabeçalho
+                        // sem parar, senão ele nunca fica escondido de verdade na tela cheia.
+                        tryEnterRealFullscreen();
+                        navigate(tapDirection);
+                    }
+                }, { passive: false });
+                zone.addEventListener('click', (e) => {
+                    if (Date.now() - lastTouchTime < 500) { e.stopPropagation(); e.preventDefault(); }
+                }, true);
+            }
+            bindZone(document.getElementById('touch-zone-left'), 'prev');
+            bindZone(document.getElementById('touch-zone-right'), 'next');
         })();
 
         // ── HOOKS DE CONTEÚDO ─────────────────────────────────────────────────────────
@@ -686,13 +895,43 @@ function navigate(direction) {
                 });
                 contents.document.addEventListener('mouseup', () => handleSelection(contents));
                 contents.document.addEventListener('selectionchange', () => handleSelection(contents));
+                // Reforço pro toque: em alguns navegadores mobile a seleção só "assenta"
+                // um instante depois do touchend, então o selectionchange sozinho pode perder.
+                contents.document.addEventListener('touchend', () => setTimeout(() => handleSelection(contents), 50));
+
+                // Tocar no meio da página (fora das zonas de virar página) revela o chrome
+                // de novo enquanto em tela cheia — só quando o toque não é uma seleção de texto.
+                contents.document.addEventListener('click', () => {
+                    if (!contents.window.getSelection().isCollapsed) return;
+                    if (document.fullscreenElement || document.webkitFullscreenElement || isCustomFS) showChrome();
+                });
             });
 
             rendition.on('relocated', (loc) => {
-                const title = document.getElementById('bookTitle').textContent;
-                localStorage.setItem(`pos_${title}`, loc.start.cfi);
+                localStorage.setItem(`pos_${bookKey}`, loc.start.cfi);
                 updateUI();
+                // Vira a página: qualquer seleção de texto antiga não existe mais na tela,
+                // então some com o estado do marcador pra não ficar "aceso" à toa.
+                currentSelection = null;
+                document.getElementById('bookmarkBtn').classList.remove('enabled');
+                document.getElementById('bookmarkIcon').className = 'fa-solid fa-bookmark';
+                document.getElementById('bookmarkBtn').style.color = '';
             });
+        }
+
+        // Tocar num trecho JÁ marcado só prepara a remoção (ícone vira "X" vermelho) —
+        // não apaga na hora. A remoção de fato só acontece ao tocar no botão do cabeçalho.
+        let suppressSelectionClearUntil = 0;
+        function markExistingHighlight(entry) {
+            currentSelection = { ...entry };
+            const btn = document.getElementById('bookmarkBtn');
+            const icon = document.getElementById('bookmarkIcon');
+            btn.classList.add('enabled');
+            icon.className = 'fa-solid fa-xmark';
+            btn.style.color = '#ff4444';
+            // Evita que o mouseup/selectionchange/touchend do mesmo toque (sem seleção real)
+            // limpe esse estado logo em seguida.
+            suppressSelectionClearUntil = Date.now() + 400;
         }
 
         function handleSelection(contents) {
@@ -705,15 +944,16 @@ function navigate(direction) {
                 const text  = sel.toString().trim();
                 currentSelection = { cfi, text };
                 btn.classList.add('enabled');
-                const title = document.getElementById('bookTitle').textContent;
-                const hls   = JSON.parse(localStorage.getItem(`hl_${title}`)) || [];
-                const exists = hls.some(h => h.cfi === cfi || h.text.includes(text) || text.includes(h.text));
-                if (exists) {
+                const hls = getHighlights();
+                // Comparação por texto EXATO (não substring): evita marcar "já existe" ou
+                // remover o destaque errado só porque um trecho novo contém palavras de outro.
+                const ex = hls.find(h => h.cfi === cfi || h.text === text);
+                if (ex) {
                     icon.className = 'fa-solid fa-xmark'; btn.style.color = '#ff4444';
-                    const ex = hls.find(h => h.text.includes(text) || text.includes(h.text));
-                    if (ex) currentSelection.cfi = ex.cfi;
+                    currentSelection.cfi = ex.cfi;
                 } else { icon.className = 'fa-solid fa-bookmark'; btn.style.color = '#ffeb3b'; }
             } else {
+                if (Date.now() < suppressSelectionClearUntil) return;
                 btn.classList.remove('enabled'); icon.className = 'fa-solid fa-bookmark';
                 btn.style.color = ''; currentSelection = null;
             }
@@ -721,14 +961,14 @@ function navigate(direction) {
 
         async function handleBookmark() {
             if (!currentSelection) return;
-            const title = document.getElementById('bookTitle').textContent;
-            const key   = `hl_${title}`;
-            let hls = JSON.parse(localStorage.getItem(key)) || [];
-            const idx = hls.findIndex(h => h.cfi === currentSelection.cfi || h.text.includes(currentSelection.text) || currentSelection.text.includes(h.text));
+            const hls = getHighlights();
+            const idx = hls.findIndex(h => h.cfi === currentSelection.cfi || h.text === currentSelection.text);
             if (idx !== -1) { removeHighlight(hls[idx].cfi); }
             else {
-                hls.push(currentSelection); localStorage.setItem(key, JSON.stringify(hls));
-                rendition.annotations.add('highlight', currentSelection.cfi, {}, () => { removeHighlight(currentSelection.cfi); }, 'hl-box');
+                const entry = { ...currentSelection };
+                hls.push(entry); setHighlights(hls);
+                rendition.annotations.add('highlight', entry.cfi, {}, () => { markExistingHighlight(entry); }, 'hl-box');
+                syncHighlight('add', entry);
             }
             renderHighlightsList();
             document.getElementById('bookmarkBtn').classList.remove('enabled');
@@ -738,36 +978,37 @@ function navigate(direction) {
         }
 
         window.removeHighlight = (cfi) => {
-            const title = document.getElementById('bookTitle').textContent;
-            const key   = `hl_${title}`;
-            let hls = JSON.parse(localStorage.getItem(key)) || [];
-            hls = hls.filter(h => h.cfi !== cfi);
-            localStorage.setItem(key, JSON.stringify(hls));
+            const hls = getHighlights();
+            const entry = hls.find(h => h.cfi === cfi);
+            setHighlights(hls.filter(h => h.cfi !== cfi));
             rendition.annotations.remove(cfi, 'highlight');
             renderHighlightsList();
+            if (entry) syncHighlight('remove', entry);
         };
 
         function renderHighlightsList() {
-            const drop  = document.getElementById('highlightsDropdown');
-            const title = document.getElementById('bookTitle').textContent;
-            const hls   = JSON.parse(localStorage.getItem(`hl_${title}`)) || [];
+            const drop = document.getElementById('highlightsDropdown');
+            const hls  = getHighlights();
             drop.innerHTML = `<option value="" disabled selected>Destaques (${hls.length})</option>`;
-            hls.forEach(h => { const o = document.createElement('option'); o.value = h.cfi; o.textContent = h.text.substring(0,25)+'...'; drop.appendChild(o); });
+            hls.forEach(h => { const o = document.createElement('option'); o.value = h.cfi || ''; o.textContent = h.text.substring(0,25)+'...'; drop.appendChild(o); });
             if (hls.length > 0) { const c = document.createElement('option'); c.value = 'CLEAR_ALL'; c.textContent = 'APAGAR TODOS'; drop.appendChild(c); }
         }
 
         function renderAllHighlights() {
-            const title = document.getElementById('bookTitle').textContent;
-            const hls   = JSON.parse(localStorage.getItem(`hl_${title}`)) || [];
+            const hls = getHighlights().filter(h => h.cfi);
             hls.forEach(h => {
                 rendition.annotations.remove(h.cfi, 'highlight');
-                rendition.annotations.add('highlight', h.cfi, {}, () => { removeHighlight(h.cfi); }, 'hl-box');
+                rendition.annotations.add('highlight', h.cfi, {}, () => { markExistingHighlight(h); }, 'hl-box');
             });
         }
 
         document.getElementById('highlightsDropdown').onchange = (e) => {
             if (e.target.value === 'CLEAR_ALL') {
-                if (confirm('Apagar todas as marcações?')) { localStorage.removeItem(`hl_${document.getElementById('bookTitle').textContent}`); location.reload(); }
+                if (confirm('Apagar todas as marcações?')) {
+                    setHighlights([]);
+                    if (isCloudBook && bookKey) updateDoc(doc(db, 'books', bookKey), { highlights: [] }).catch(err => console.error(err));
+                    location.reload();
+                }
             } else if (rendition) { rendition.display(e.target.value); }
         };
 
@@ -822,53 +1063,83 @@ function navigate(direction) {
         function pushFSState() { history.pushState({ staantFS: true }, ''); }
         window.addEventListener('popstate', () => { if (isCustomFS) exitCustomFS(); });
 
+        function enterCustomFS() {
+            isCustomFS = true;
+            const container = document.getElementById('reader-container');
+            hideChrome();
+            container.style.position = 'fixed'; container.style.inset = '0';
+            container.style.top = '0'; container.style.left = '0';
+            container.style.right = '0'; container.style.bottom = '0';
+            container.style.height = '100%'; container.style.width = '100%'; container.style.zIndex = '9999';
+            document.getElementById('fullscreenIcon').className = 'fa-solid fa-compress';
+            pushFSState();
+            setTimeout(() => { if (rendition) { const { w, h } = getSize(); rendition.resize(w, h); } }, 350);
+        }
+
         function exitCustomFS() {
             if (!isCustomFS) return;
             isCustomFS = false;
-            const icon = document.getElementById('fullscreenIcon');
-            const ui   = document.getElementById('ui-wrapper');
             const container = document.getElementById('reader-container');
-            ui.style.transform = ''; ui.style.opacity = ''; ui.style.pointerEvents = '';
+            showChrome();
             container.style.position = 'fixed'; container.style.inset = '';
             container.style.top = '112px'; container.style.left = '0';
             container.style.right = ''; container.style.bottom = '';
             container.style.height = 'calc(100vh - 112px)';
             container.style.width = '100%'; container.style.zIndex = '';
-            icon.className = 'fa-solid fa-expand';
-            if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
-            else if (document.webkitFullscreenElement) document.webkitExitFullscreen();
+            document.getElementById('fullscreenIcon').className = 'fa-solid fa-expand';
             setTimeout(() => { if (rendition) { const { w, h } = getSize(); rendition.resize(w, h); } }, 350);
         }
 
+        // Toque em qualquer lugar (fora de seleção de texto), enquanto em tela cheia, revela o chrome de novo
+        document.getElementById('reader-container').addEventListener('click', () => {
+            if (!document.fullscreenElement && !document.webkitFullscreenElement && !isCustomFS) return;
+            if (!window.getSelection().isCollapsed) return;
+            showChrome();
+        });
+
+        // Sempre tenta a Fullscreen API de verdade primeiro — no Android ela some com a
+        // barra do sistema (hora/rede/bateria) também, não só com a barra do navegador.
+        // O modo manual (isCustomFS) fica só como reserva pra navegadores sem suporte
+        // (ex: Safari no iOS não implementa Fullscreen API pra elementos comuns).
+        // Pede a Fullscreen API de verdade — só funciona se chamada de dentro de um gesto
+        // real do usuário (toque/clique), é uma restrição de segurança do navegador.
+        // Por isso é chamada tanto no botão quanto nos toques de virar página/tocar na tela.
+        function tryEnterRealFullscreen() {
+            if (document.fullscreenElement || document.webkitFullscreenElement || isCustomFS) return;
+            if (!document.fullscreenEnabled && !document.webkitFullscreenEnabled) return;
+            const req = document.documentElement.requestFullscreen
+                ? document.documentElement.requestFullscreen({ navigationUI: 'hide' })
+                : document.documentElement.webkitRequestFullscreen && document.documentElement.webkitRequestFullscreen();
+            if (req && req.catch) req.catch(() => {});
+        }
+
         document.getElementById('fullscreenBtn').onclick = () => {
-            const isMobile  = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-            const icon      = document.getElementById('fullscreenIcon');
-            const ui        = document.getElementById('ui-wrapper');
-            const container = document.getElementById('reader-container');
-            if (isMobile || !document.fullscreenEnabled) {
-                isCustomFS = !isCustomFS;
-                if (isCustomFS) {
-                    ui.style.transform = 'translateY(-100%)'; ui.style.opacity = '0'; ui.style.pointerEvents = 'none';
-                    container.style.position = 'fixed'; container.style.inset = '0';
-                    container.style.top = '0'; container.style.left = '0';
-                    container.style.right = '0'; container.style.bottom = '0';
-                    container.style.height = '100%'; container.style.width = '100%'; container.style.zIndex = '9999';
-                    icon.className = 'fa-solid fa-compress';
-                    if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => {});
-                    else if (document.documentElement.webkitRequestFullscreen) document.documentElement.webkitRequestFullscreen();
-                    pushFSState();
-                    setTimeout(() => { if (rendition) { const { w, h } = getSize(); rendition.resize(w, h); } }, 350);
-                } else { exitCustomFS(); }
+            const canNativeFS = document.fullscreenEnabled || document.webkitFullscreenEnabled;
+            if (canNativeFS) {
+                const isActive = document.fullscreenElement || document.webkitFullscreenElement;
+                if (!isActive) {
+                    const req = document.documentElement.requestFullscreen
+                        ? document.documentElement.requestFullscreen({ navigationUI: 'hide' })
+                        : document.documentElement.webkitRequestFullscreen();
+                    Promise.resolve(req).catch(() => enterCustomFS());
+                } else if (document.exitFullscreen) {
+                    document.exitFullscreen().catch(() => {});
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                }
             } else {
-                if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
-                else document.exitFullscreen().catch(() => {});
+                isCustomFS ? exitCustomFS() : enterCustomFS();
             }
         };
 
         document.addEventListener('fullscreenchange', () => {
+            document.getElementById('fullscreenIcon').className = document.fullscreenElement ? 'fa-solid fa-compress' : 'fa-solid fa-expand';
+            document.fullscreenElement ? hideChrome() : showChrome();
             setTimeout(() => { if (rendition) { const { w, h } = getSize(); rendition.resize(w, h); } }, 350);
         });
         document.addEventListener('webkitfullscreenchange', () => {
+            document.getElementById('fullscreenIcon').className = document.webkitFullscreenElement ? 'fa-solid fa-compress' : 'fa-solid fa-expand';
+            document.webkitFullscreenElement ? hideChrome() : showChrome();
             setTimeout(() => { if (rendition) { const { w, h } = getSize(); rendition.resize(w, h); } }, 350);
         });
     </script>
