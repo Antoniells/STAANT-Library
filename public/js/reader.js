@@ -1,291 +1,20 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <link rel="icon" type="image/png" href="https://img.icons8.com/ios-filled/50/e50914/book-stack.png">
-    <link rel="apple-touch-icon" href="https://img.icons8.com/ios-filled/150/e50914/book-stack.png">
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Leitor - STAANT</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-    <script>
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
-    </script>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-
-    <style>
-        :root {
-            --primary-red: #e50914;
-            --dark-bg: #121212;
-            --border-gray: #374151;
-        }
-
-        * { box-sizing: border-box; }
-
-        body {
-            font-family: 'Roboto', sans-serif;
-            background-color: var(--dark-bg);
-            color: #fff;
-            margin: 0;
-            overflow: hidden;
-        }
-
-        /* ── HEADERS FIXOS ── */
-        #ui-wrapper {
-            position: fixed; top: 0; left: 0;
-            width: 100%; z-index: 200;
-            transition: transform 0.3s ease, opacity 0.3s ease;
-        }
-        /* Chrome imersivo (rolagem estilo YouVersion e modo tela cheia): a barra some
-           via JS/toque, não por :hover (que não existe em toque). */
-        #ui-wrapper.ui-hidden { transform: translateY(-100%); opacity: 0; pointer-events: none; }
-        /* A barra de fonte (embaixo) some junto com a barra superior — !important pra
-           vencer as classes do Tailwind (opacity-40/hover:opacity-100) sempre. */
-        #fontSizeBar.ui-hidden { opacity: 0 !important; pointer-events: none; }
-
-        .glass-header {
-            background: rgba(31, 31, 31, 0.98);
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid var(--border-gray);
-        }
-
-        /* ── ÁREA DE LEITURA — modo páginas ── */
-        #reader-container {
-            position: fixed;
-            top: 112px; left: 0;
-            width: 100%;
-            height: calc(100vh - 112px);
-            overflow: hidden;
-            background-color: var(--dark-bg);
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-        }
-        :fullscreen #reader-container { top: 0; height: 100vh; }
-        /* Acompanha o header sumindo na rolagem imersiva */
-        #reader-container.chrome-hidden { top: 0; height: 100vh; }
-
-        /* ── ÁREA DE LEITURA — modo scroll ── */
-        #reader-container.scroll-mode {
-            overflow-y: auto;
-            overflow-x: hidden;
-            transition: top 0.3s ease, height 0.3s ease;
-        }
-
-        /* viewer — modo páginas */
-        #viewer {
-            width: 100%;
-            max-width: 800px;
-            height: 100%;
-            background-color: white;
-            box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
-            position: relative;
-        }
-        #viewer iframe {
-            width: 100% !important;
-            height: 100% !important;
-            display: block !important;
-            border: none !important;
-        }
-
-        /* ── SCROLL VIEWER — renderização direta no DOM, sem iframe ── */
-        #scroll-viewer {
-            display: none;
-            width: 100%;
-            max-width: 800px;
-            padding: 24px 40px 100px;
-            font-family: Georgia, 'Times New Roman', serif;
-            font-size: 16px;
-            line-height: 1.75;
-            box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
-        }
-        #scroll-viewer.active { display: block; }
-
-        /* Temas */
-        #scroll-viewer.theme-sepia { background: #f4ecd8; color: #5b4636; }
-        #scroll-viewer.theme-dark  { background: #1a1a1a; color: #e0e0e0; }
-        #scroll-viewer.theme-light { background: #ffffff; color: #1a1a1a; }
-
-        #scroll-viewer h1, #scroll-viewer h2, #scroll-viewer h3 { margin-top: 2em; margin-bottom: 0.5em; }
-        #scroll-viewer p { margin: 0 0 1em; }
-        #scroll-viewer img { max-width: 100%; height: auto; display: block; margin: 1em auto; }
-        #scroll-viewer a { color: inherit; }
-
-        .chapter-sep {
-            border: none;
-            border-top: 1px solid rgba(128,128,128,0.25);
-            margin: 3em 0;
-        }
-
-        /* Loading no centro do container */
-        #scroll-loading {
-            display: none;
-            width: 100%;
-            text-align: center;
-            padding: 60px 20px;
-            color: #888;
-            font-size: 0.9rem;
-        }
-        #scroll-loading.active { display: block; }
-
-        /* Zonas de toque para virar página — só nas bordas, o centro fica livre
-           pra seleção nativa de texto (marcar destaques) chegar até o conteúdo. */
-        .touch-zone {
-            position: absolute;
-            top: 0; bottom: 0; width: 25%;
-            z-index: 10;
-            background: transparent;
-            touch-action: none;
-        }
-        .touch-zone-left  { left: 0; }
-        .touch-zone-right { right: 0; }
-
-        .tap-feedback {
-            position: fixed;
-            width: 56px; height: 56px; border-radius: 50%;
-            background: rgba(229, 9, 20, 0.2);
-            pointer-events: none;
-            transform: translate(-50%, -50%) scale(0);
-            transition: transform 0.2s ease, opacity 0.3s ease;
-            z-index: 300; opacity: 0;
-        }
-        .tap-feedback.show { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-
-        /* Transição de página */
-        #viewer { position: relative; }
-        #page-transition {
-            position: absolute; inset: 0; z-index: 20;
-            pointer-events: none; overflow: hidden; display: none;
-        }
-        #page-slide { position: absolute; inset: 0; will-change: transform, opacity; }
-
-        /* Indicador de carregamento do PDF */
-        #pdf-loading {
-            display: none; width: 100%; text-align: center;
-            padding: 60px 20px; color: #888; font-size: 0.9rem;
-        }
-        #pdf-loading.active { display: block; }
-
-
-        /* Controles */
-        .nav-button {
-            background: var(--primary-red);
-            display: flex; align-items: center; justify-content: center;
-            transition: all 0.2s;
-        }
-        .nav-button:hover { background: #f87171; transform: scale(1.05); }
-
-        .control-select {
-            background: #2d2d2d; border: 1px solid #444;
-            border-radius: 6px; padding: 4px 8px;
-            font-size: 0.85rem; color: #ccc; outline: none;
-        }
-
-        #bookmarkBtn { opacity: 0.5; pointer-events: none; }
-        #bookmarkBtn.enabled { opacity: 1; pointer-events: auto; }
-    </style>
-</head>
-<body>
-
-    <div id="tapFeedback" class="tap-feedback"></div>
-
-    <div id="readerError" style="display:none; position:fixed; inset:0; z-index:5000; background:var(--dark-bg); flex-direction:column; align-items:center; justify-content:center; gap:16px; text-align:center; padding:20px;">
-        <i class="fa-solid fa-triangle-exclamation" style="font-size:2.5rem; color:var(--primary-red);"></i>
-        <p id="readerErrorMsg" style="max-width:320px; color:#ccc;">Não foi possível carregar este livro.</p>
-        <button onclick="window.location.href='index.html'" style="background:var(--primary-red);color:#fff;border:none;padding:12px 24px;border-radius:8px;font-weight:bold;cursor:pointer;">Voltar à Biblioteca</button>
-    </div>
-
-    <div id="ui-wrapper">
-        <header class="glass-header w-full h-14 flex items-center px-4 justify-between">
-            <div class="flex items-center gap-4">
-                <button onclick="window.location.href='index.html'" class="text-gray-400 hover:text-white transition-colors">
-                    <i class="fa-solid fa-arrow-left text-xl"></i>
-                </button>
-                <h1 id="bookTitle" class="text-sm font-bold uppercase tracking-widest text-gray-300 truncate max-w-xs md:max-w-md text-left">CARREGANDO...</h1>
-            </div>
-            <div class="flex items-center gap-3">
-                <button id="bookmarkBtn" class="text-gray-500 text-lg transition-all">
-                    <i id="bookmarkIcon" class="fa-solid fa-bookmark"></i>
-                </button>
-                <button id="fullscreenBtn" class="text-gray-400 hover:text-red-500">
-                    <i id="fullscreenIcon" class="fa-solid fa-expand"></i>
-                </button>
-            </div>
-        </header>
-
-        <nav class="glass-header w-full h-14 flex items-center px-4 justify-between">
-            <div class="flex items-center gap-2">
-                <button id="prevBtn" class="nav-button w-8 h-8 rounded-full text-white">
-                    <i class="fa-solid fa-chevron-left text-xs"></i>
-                </button>
-                <span id="pageCounter" class="text-[10px] font-mono text-gray-400 w-24 text-center">Iniciando...</span>
-                <button id="nextBtn" class="nav-button w-8 h-8 rounded-full text-white">
-                    <i class="fa-solid fa-chevron-right text-xs"></i>
-                </button>
-            </div>
-            <div class="hidden md:flex items-center gap-4">
-                <select id="chaptersDropdown" class="control-select w-40"></select>
-                <select id="highlightsDropdown" class="control-select w-40">
-                    <option value="" disabled selected>Destaques</option>
-                </select>
-                <select id="themeDropdown" class="control-select">
-                    <option value="dark">Escuro</option>
-                    <option value="sepia">Sépia</option>
-                    <option value="light">Claro</option>
-                </select>
-            </div>
-            <div class="flex items-center gap-3">
-                <div class="w-20 h-1 bg-gray-700 rounded-full overflow-hidden">
-                    <div id="progressBar" class="bg-red-600 h-full w-0 transition-all duration-300"></div>
-                </div>
-                <span id="progressPercent" class="text-[10px] text-red-500 font-bold">0%</span>
-            </div>
-        </nav>
-    </div>
-
-    <div id="reader-container">
-        <!-- Modo páginas -->
-        <div id="viewer"></div>
-        <div id="page-transition"><div id="page-slide"></div></div>
-        <div id="touch-zone-left" class="touch-zone touch-zone-left"></div>
-        <div id="touch-zone-right" class="touch-zone touch-zone-right"></div>
-        <!-- Modo scroll -->
-        <div id="scroll-loading">
-            <div style="width:32px;height:32px;border:3px solid #333;border-top-color:#e50914;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px;"></div>
-            Carregando livro...
-        </div>
-        <div id="scroll-viewer"></div>
-        <div id="pdf-viewer" style="display: none; width: 100%; height: 100%; overflow-y: auto; justify-content: center; align-items: flex-start; padding: 20px;">
-            <div id="pdf-loading">
-                <div style="width:32px;height:32px;border:3px solid #333;border-top-color:#e50914;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px;"></div>
-                Carregando PDF...
-            </div>
-            <canvas id="pdf-canvas" style="max-width: 100%; box-shadow: 0 0 20px rgba(0,0,0,0.5); background-color: white;"></canvas>
-        </div>
-    </div>
-
-    <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
-
-    <div id="fontSizeBar" class="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 bg-[#1f1f1f]/90 backdrop-blur-md px-6 py-3 rounded-2xl border border-gray-700 flex items-center gap-6 shadow-2xl opacity-40 hover:opacity-100 transition-opacity">
-        <button onclick="changeFontSize(-2)" class="text-gray-400 hover:text-white transition-colors p-2">
-            <span class="text-sm font-bold italic">A</span>
-        </button>
-        <div class="h-4 w-[1px] bg-gray-600"></div>
-        <span id="fontSizeDisplay" class="text-xs font-mono text-gray-400 min-w-[40px] text-center">16px</span>
-        <div class="h-4 w-[1px] bg-gray-600"></div>
-        <button onclick="changeFontSize(2)" class="text-gray-400 hover:text-white transition-colors p-2">
-            <span class="text-xl font-bold italic">A</span>
-        </button>
-    </div>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/epubjs/dist/epub.min.js"></script>
-
-    <script type="module">
-        import { auth, db } from './firebase-config.js';
+        import { auth, db } from '../firebase-config.js';
         import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { doc, getDoc, updateDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getOfflineBook } from '../offline-books.js';
+        import { addReadingMinutes } from '../reading-stats.js';
+
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+
+        // ─── CRONÔMETRO DE LEITURA ── conta 1 minuto de cada vez, e só enquanto a
+        // aba está visível (não conta livro esquecido aberto em outra aba).
+        setInterval(() => {
+            if (document.visibilityState === 'visible') addReadingMinutes(1);
+        }, 60000);
+
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
+        }
 
         let pdfDoc = null, pageNum = 1, pageIsRendering = false, pageNumIsPending = null;
         let book, rendition;
@@ -310,12 +39,12 @@
 
 async function initReader() {
             const cloudUrl = localStorage.getItem('currentEpubUrl');
-            const localId  = localStorage.getItem('currentBookId');
+            const bookId   = localStorage.getItem('currentBookId');
+            const localId  = bookId;
 
             if (cloudUrl) {
                 isCloudBook = true;
-                // Se a URL contém .pdf, carrega o leitor novo. Senão, vai de epub.
-                const loadPromise = cloudUrl.toLowerCase().includes('.pdf') ? loadPdf(cloudUrl) : loadEpub(cloudUrl);
+                const loadPromise = openBestSource(cloudUrl, bookId);
                 // Evita ficar girando "Carregando..." pra sempre se o link estiver quebrado/travado
                 Promise.race([
                     loadPromise,
@@ -332,6 +61,32 @@ async function initReader() {
             } else { window.location.href = 'index.html'; }
         }
 
+        // Prefere a cópia já baixada no dispositivo (não gasta banda do Supabase e funciona
+        // sem internet); se não tiver, busca da nuvem; se a rede falhar, tenta a cópia offline
+        // como último recurso antes de desistir.
+        async function openBestSource(cloudUrl, bookId) {
+            const isPdfUrl = cloudUrl.toLowerCase().includes('.pdf');
+
+            async function loadFromOffline() {
+                if (!bookId) return false;
+                const offline = await getOfflineBook(bookId).catch(() => null);
+                if (!offline) return false;
+                const buffer = await offline.blob.arrayBuffer();
+                const isPdf = offline.fileType === 'pdf' || isPdfUrl;
+                if (isPdf) await loadPdf(buffer); else await loadEpub(buffer);
+                return true;
+            }
+
+            if (await loadFromOffline()) return;
+
+            try {
+                if (isPdfUrl) await loadPdf(cloudUrl); else await loadEpub(cloudUrl);
+            } catch (err) {
+                if (await loadFromOffline()) return;
+                throw err;
+            }
+        }
+
         function getSize() {
             const el = document.getElementById('reader-container');
             const w = isCustomFS ? Math.min(window.innerWidth, 800) : Math.min(el.clientWidth || window.innerWidth, 800);
@@ -341,7 +96,9 @@ async function initReader() {
 
         // Chrome imersivo: esconde/mostra a barra de cima E a de fonte juntas
         // (rolagem estilo YouVersion e modo tela cheia usam as mesmas duas funções).
+        let chromeAutoHideTimer = null;
         function hideChrome() {
+            clearTimeout(chromeAutoHideTimer);
             document.getElementById('ui-wrapper').classList.add('ui-hidden');
             document.getElementById('fontSizeBar').classList.add('ui-hidden');
             document.getElementById('reader-container').classList.add('chrome-hidden');
@@ -350,6 +107,14 @@ async function initReader() {
             document.getElementById('ui-wrapper').classList.remove('ui-hidden');
             document.getElementById('fontSizeBar').classList.remove('ui-hidden');
             document.getElementById('reader-container').classList.remove('chrome-hidden');
+
+            // Em tela cheia (ou na rolagem imersiva), some sozinho de novo depois de ~3s
+            clearTimeout(chromeAutoHideTimer);
+            const emTelaCheia = document.fullscreenElement || document.webkitFullscreenElement || isCustomFS;
+            const emRolagem   = document.getElementById('reader-container').classList.contains('scroll-mode');
+            if (emTelaCheia || emRolagem) {
+                chromeAutoHideTimer = setTimeout(hideChrome, 3000);
+            }
         }
 
         // Link quebrado, arquivo corrompido ou carregamento travado: avisa em vez de girar pra sempre
@@ -360,6 +125,17 @@ async function initReader() {
                 : 'Não foi possível abrir este livro. O arquivo pode estar corrompido ou o link quebrado.';
             document.getElementById('readerErrorMsg').textContent = msg;
             document.getElementById('readerError').style.display = 'flex';
+        }
+
+        function showConfirm(message) {
+            return new Promise((resolve) => {
+                const modal = document.getElementById('confirmModal');
+                document.getElementById('confirmMessage').textContent = message;
+                modal.style.display = 'flex';
+                const cleanup = (result) => { modal.style.display = 'none'; resolve(result); };
+                document.getElementById('confirmOkBtn').onclick = () => cleanup(true);
+                document.getElementById('confirmCancelBtn').onclick = () => cleanup(false);
+            });
         }
 
         // Grava progresso no Firestore (com debounce) — só depois de ~1min de leitura de verdade
@@ -433,8 +209,8 @@ async function initReader() {
             }
         }
 
-        // ── CARREGAR PDF ──────────────────────────────────────────────────────────────
-        async function loadPdf(url) {
+        // ── CARREGAR PDF ── source: URL (string) ou ArrayBuffer (cópia offline) ─────────
+        async function loadPdf(source) {
             document.getElementById('viewer').style.display = 'none';
             document.getElementById('scroll-viewer').classList.remove('active');
             document.getElementById('pdf-viewer').style.display = 'flex';
@@ -443,8 +219,9 @@ async function initReader() {
             document.getElementById('bookTitle').textContent = "Carregando PDF...";
 
             try {
-                pdfDoc = await pdfjsLib.getDocument(url).promise;
-                
+                const pdfSrc = (typeof source === 'string') ? source : { data: source };
+                pdfDoc = await pdfjsLib.getDocument(pdfSrc).promise;
+
                 // 🧠 O PDF TAMBÉM USA O TÍTULO OFICIAL AGORA
                 const dbTitle = localStorage.getItem('currentBookTitle');
                 const title = dbTitle || "Leitura em PDF";
@@ -689,13 +466,16 @@ async function loadScrollMode(title, savedTheme) {
                     loadingMore = true;
                     sentinel.remove();
                     (async () => {
-                        const targetHeight = scrollEl.scrollHeight + (container.clientHeight || window.innerHeight);
+                        // Carrega 2 telas de uma vez e começa bem antes de chegar no fim
+                        // (rootMargin), pra rolagem nunca "bater na parede" esperando capítulo.
+                        const alturaTela = container.clientHeight || window.innerHeight;
+                        const targetHeight = scrollEl.scrollHeight + alturaTela * 2;
                         while (section && scrollEl.scrollHeight < targetHeight) { await loadOneChapter(); }
                         if (section) { scrollEl.appendChild(sentinel); observer.observe(sentinel); }
                         else observer.disconnect();
                         loadingMore = false;
                     })();
-                }, { root: container, rootMargin: '600px' });
+                }, { root: container, rootMargin: '1500px' });
                 observer.observe(sentinel);
             }
 
@@ -1002,9 +782,10 @@ function navigate(direction) {
             });
         }
 
-        document.getElementById('highlightsDropdown').onchange = (e) => {
+        document.getElementById('highlightsDropdown').onchange = async (e) => {
             if (e.target.value === 'CLEAR_ALL') {
-                if (confirm('Apagar todas as marcações?')) {
+                const ok = await showConfirm('Apagar todas as marcações?');
+                if (ok) {
                     setHighlights([]);
                     if (isCloudBook && bookKey) updateDoc(doc(db, 'books', bookKey), { highlights: [] }).catch(err => console.error(err));
                     location.reload();
@@ -1062,6 +843,20 @@ function navigate(direction) {
         let isCustomFS = false;
         function pushFSState() { history.pushState({ staantFS: true }, ''); }
         window.addEventListener('popstate', () => { if (isCustomFS) exitCustomFS(); });
+
+        // Botão físico de "voltar" do Android (dentro do APK): sai da tela cheia
+        // manual/nativa primeiro, em vez de fechar o app ou voltar pra estante direto.
+        if (window.Capacitor?.isNativePlatform?.()) {
+            window.Capacitor.Plugins.App.addListener('backButton', ({ canGoBack }) => {
+                if (isCustomFS) { exitCustomFS(); return; }
+                if (document.fullscreenElement || document.webkitFullscreenElement) {
+                    (document.exitFullscreen || document.webkitExitFullscreen)?.call(document);
+                    return;
+                }
+                if (canGoBack) window.history.back();
+                else window.Capacitor.Plugins.App.exitApp();
+            });
+        }
 
         function enterCustomFS() {
             isCustomFS = true;
@@ -1142,6 +937,3 @@ function navigate(direction) {
             document.webkitFullscreenElement ? hideChrome() : showChrome();
             setTimeout(() => { if (rendition) { const { w, h } = getSize(); rendition.resize(w, h); } }, 350);
         });
-    </script>
-</body>
-</html>

@@ -1,0 +1,157 @@
+        :root { 
+            --primary-red: #e50914; 
+            --dark-bg: #121212; 
+            --card-bg: rgba(0, 0, 0, 0.75); 
+            --input-bg: #333333; 
+            --text-color: #fff; 
+        }
+        
+        body { 
+            font-family: 'Roboto', sans-serif; 
+            color: var(--text-color); 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+            margin: 0; 
+            /* Fundo estilo Netflix com textura de livros */
+            background: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,1) 100%), 
+                        url('https://images.unsplash.com/photo-1507842217343-583bb7270b66?q=80&w=1920&auto=format&fit=crop') center/cover no-repeat;
+        }
+
+        /* Detalhe de "rabisco" para remeter à leitura */
+        .scribble-overlay {
+            position: absolute;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10 10c20 5 50-10 70 20s-30 40-10 60' stroke='rgba(255,255,255,0.03)' fill='none' stroke-width='2'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .container { 
+            background-color: var(--card-bg); 
+            padding: 50px 60px; 
+            border-radius: 8px; 
+            width: 100%; 
+            max-width: 450px; 
+            box-sizing: border-box;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,255,255,0.1);
+            z-index: 2;
+        }
+
+        h1 {
+            color: var(--primary-red); 
+            margin: 0 0 5px 0; 
+            font-size: 2.8rem; 
+            font-weight: 900;
+            letter-spacing: 2px;
+        }
+
+        .subtitle {
+            font-family: 'Caveat', cursive; /* Fonte de escrita à mão */
+            color: #aaa;
+            font-size: 1.5rem;
+            margin-bottom: 30px;
+            transform: rotate(-2deg);
+        }
+
+        #messageArea {
+            min-height: 20px;
+            margin-bottom: 20px;
+            font-size: 0.85rem;
+            border-radius: 4px;
+            padding: 12px;
+            display: none;
+            font-weight: 500;
+        }
+        .error-msg { background-color: #e87c03; color: white; }
+        .success-msg { background-color: #22c55e; color: white; }
+
+        input { 
+            width: 100%; 
+            padding: 16px; 
+            margin-bottom: 15px; 
+            border-radius: 4px; 
+            border: none; 
+            background: var(--input-bg); 
+            color: white; 
+            box-sizing: border-box; 
+            font-size: 1rem;
+            outline: none;
+        }
+        input:focus { background: #454545; }
+
+        /* Estilo do Captcha */
+        .captcha-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            background: rgba(255,255,255,0.05);
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px dashed #555;
+        }
+        .captcha-question {
+            font-weight: bold;
+            color: #ccc;
+            font-size: 0.9rem;
+            white-space: nowrap;
+        }
+        .captcha-container input {
+            margin-bottom: 0;
+            padding: 10px;
+            text-align: center;
+            font-size: 1.1rem;
+        }
+
+        button { 
+            width: 100%; 
+            padding: 16px; 
+            background: var(--primary-red); 
+            color: white; 
+            border: none; 
+            border-radius: 4px; 
+            font-weight: bold; 
+            font-size: 1rem;
+            cursor: pointer; 
+            transition: background 0.2s; 
+        }
+        button:hover { background: #f40612; }
+        button:disabled { background: #555; cursor: not-allowed; }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            margin: 20px 0;
+            color: #737373;
+            font-size: 0.9rem;
+        }
+        .divider::before, .divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid #333;
+        }
+        .divider:not(:empty)::before { margin-right: .25em; }
+        .divider:not(:empty)::after { margin-left: .25em; }
+
+        .google-btn {
+            background: white;
+            color: black;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .google-btn:hover { background: #f0f0f0; }
+        .google-btn img { width: 20px; }
+
+        .links { display: flex; justify-content: space-between; margin-top: 15px; }
+        a { color: #b3b3b3; text-decoration: none; font-size: 0.9rem; transition: color 0.2s; }
+        a:hover { text-decoration: underline; color: #fff; }
+
+        .register-text { margin-top: 30px; color: #737373; font-size: 0.95rem; }
+        .register-text a { color: #fff; font-weight: bold; }

@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#e50914">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="icon" type="image/png" href="icons/icon-50.png">
+    <link rel="apple-touch-icon" href="icons/icon-150.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minha Biblioteca Digital</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <link rel="stylesheet" href="css/index.css">
+</head>
+<body>
+
+    <div id="loadingOverlay">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <p>Sincronizando biblioteca...</p>
+        </div>
+    </div>
+
+    <div id="userWelcome" class="welcome-message">Olá!</div>
+
+    <div id="top-utility-container">
+        <button class="icon-btn" onclick="toggleSidebar()" aria-label="Abrir menu" title="Menu"><i class="fa-solid fa-bars"></i></button>
+        <div id="searchContainer">
+            <input type="text" id="searchInput" placeholder="O que vamos ler hoje?" class="search-input" aria-label="Buscar livros">
+            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+        </div>
+        <button id="adminPanelBtn" onclick="window.location.href='admin.html'">
+            <i class="fa-solid fa-user-shield" aria-hidden="true"></i> Painel Admin
+        </button>
+        <button id="addBookBtn" onclick="openAddModal()">+ Livro</button>
+        <button id="logoutBtn" onclick="logout()" aria-label="Sair da conta" title="Sair"><i class="fa-solid fa-right-from-bracket"></i></button>
+        <button class="icon-btn" onclick="toggleSearchMobile()" aria-label="Buscar" title="Buscar"><i class="fa-solid fa-magnifying-glass"></i></button>
+    </div>
+
+    <div id="mobileSearchRow">
+        <div class="mobile-search-box">
+            <input type="text" id="searchInputMobile" placeholder="O que vamos ler hoje?">
+        </div>
+    </div>
+
+    <div id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+    <!-- SIDEBAR: único elemento, sem duplicata -->
+    <div id="sidebar">
+        <button onclick="toggleSidebar()" class="close-sidebar" aria-label="Fechar menu" title="Fechar">&times;</button>
+        <h2 class="menu-title">Menu</h2>
+
+        <button id="adminSidebarBtn" class="sidebar-btn" onclick="window.location.href='admin.html'">
+            <i class="fa-solid fa-user-shield"></i>
+            <span>Painel de Controle</span>
+        </button>
+        
+        <!-- NOVO: Botão Início -->
+        <button class="sidebar-btn" onclick="switchView('home')">
+            <i class="fa-solid fa-house"></i>
+            <span>Início</span>
+        </button>
+
+        <button class="sidebar-btn" onclick="openAddModal()">
+            <i class="fa-solid fa-circle-plus"></i>
+            <span>Adicionar Livro</span>
+        </button>
+
+        <!-- NOVO: Botão Sua Coleção movido pra cá -->
+        <button class="sidebar-btn" onclick="switchView('library')">
+            <i class="fa-solid fa-book-bookmark"></i>
+            <span>Sua Coleção</span>
+        </button>
+
+        <button class="sidebar-btn" onclick="openSettingsModal()">
+            <i class="fa-solid fa-gear"></i>
+            <span>Configurações</span>
+        </button>
+        
+        <button class="sidebar-btn" onclick="logout()">
+            <i class="fa-solid fa-circle-arrow-right"></i>
+            <span>Sair da Conta</span>
+        </button>
+
+        <div class="sidebar-footer">STAANT v1.2.5</div>
+    </div>
+
+    <!-- MODAL CONFIGURAÇÕES -->
+    <div id="settingsModal">
+        <div class="settings-content">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; padding: 0 2px;">
+                <h2 style="color:white; font-size:1.25rem; font-weight:bold; margin:0;">Configurações</h2>
+            </div>
+
+            <div class="settings-list">
+                <div class="settings-item" onclick="toggleSubMenu('profile-info')">
+                    <div class="item-left"><i class="fa-solid fa-user"></i><span>Perfil</span></div>
+                    <i id="profile-arrow" class="fa-solid fa-chevron-right" style="font-size:0.75rem; transition:transform 0.3s;"></i>
+                </div>
+                <div id="profile-info" class="submenu-wrapper">
+                    <div class="submenu-inner" style="font-size:0.875rem;">
+                        <div style="display:flex;flex-direction:column;gap:4px;">
+                            <span style="color:var(--primary-red);font-size:0.625rem;font-weight:bold;text-transform:uppercase;letter-spacing:0.1em;">Nome</span>
+                            <span id="profile-name" style="color:white;font-weight:500;">-</span>
+                        </div>
+                        <div style="display:flex;flex-direction:column;gap:4px;">
+                            <span style="color:var(--primary-red);font-size:0.625rem;font-weight:bold;text-transform:uppercase;letter-spacing:0.1em;">E-mail</span>
+                            <span id="profile-email" style="color:#9ca3af;font-family:monospace;">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-item" onclick="toggleSubMenu('theme-options')">
+                    <div class="item-left"><i class="fa-solid fa-moon"></i><span>Temas</span></div>
+                    <i id="theme-arrow" class="fa-solid fa-chevron-right" style="font-size:0.75rem; transition:transform 0.3s;"></i>
+                </div>
+                <div id="theme-options" class="submenu-wrapper">
+                    <div class="submenu-inner">
+                        <button data-theme="dark"  onclick="applyTheme('dark', this)"  class="theme-sub-btn">Escuro</button>
+                        <button data-theme="sepia" onclick="applyTheme('sepia', this)" class="theme-sub-btn">Sépia</button>
+                        <button data-theme="light" onclick="applyTheme('light', this)" class="theme-sub-btn">Claro</button>
+                    </div>
+                </div>
+
+                <div class="settings-item" onclick="toggleSubMenu('reading-options')">
+                    <div class="item-left"><i class="fa-solid fa-book-open"></i><span>Leitura</span></div>
+                    <i id="reading-arrow" class="fa-solid fa-chevron-right" style="font-size:0.75rem; transition:transform 0.3s;"></i>
+                </div>
+                <div id="reading-options" class="submenu-wrapper">
+                    <div class="submenu-inner">
+                        <button data-mode="paginated" onclick="applyReadMode('paginated', this)" class="read-mode-btn">
+                            <i class="fa-solid fa-book" style="color:#6366f1;width:18px;text-align:center;"></i>
+                            <span><span style="display:block;">Páginas</span><span class="mode-desc">Navegar capítulo por capítulo</span></span>
+                        </button>
+                        <button data-mode="scroll" onclick="applyReadMode('scroll', this)" class="read-mode-btn">
+                            <i class="fa-solid fa-scroll" style="color:#22c55e;width:18px;text-align:center;"></i>
+                            <span><span style="display:block;">Rolagem Infinita</span><span class="mode-desc">Texto contínuo sem quebras</span></span>
+                        </button>
+                    </div>
+                </div>
+                <div class="settings-item disabled">
+                    <div class="item-left"><i class="fa-solid fa-headset"></i><span>Ajuda</span></div>
+                    <i class="fa-solid fa-chevron-right" style="font-size:0.75rem;"></i>
+                </div>
+            </div>
+
+            <button onclick="closeSettingsModal()" class="save-settings-btn">CONFIRMAR ALTERAÇÕES</button>
+        </div>
+    </div>
+
+    <input type="file" id="epubFileInput" accept=".epub, .pdf">
+
+<!-- VISÃO 1: INÍCIO (Descoberta estilo Netflix) -->
+    <div id="homeView">
+        <div id="hero">
+            <div class="hero-content">
+                <h1 style="color: var(--primary-red); margin: 0; font-size: 3rem; font-weight: 800;">STAANT</h1>
+                <p style="font-size: 1.2rem; color: #aaa;">Sua biblioteca digital</p>
+                <span id="featuredLabel" style="display:none; font-size:0.7rem; font-weight:bold; text-transform:uppercase; letter-spacing:0.15em; color:var(--primary-red);">Continuar lendo</span>
+                <h2 id="featuredTitle">Bem-vindo</h2>
+                <p id="featuredAuthor"></p>
+                <p id="featuredSummary" style="max-width: 450px; margin: 20px auto; font-size: 0.95rem;"></p>
+                <div id="featuredProgress" style="display:none; max-width:280px; margin:0 auto 20px;"></div>
+                <div class="hero-buttons">
+                    <button id="readFeaturedBtn" class="primary-btn" style="display:none;"><i class="fa-solid fa-play"></i> Ler Agora</button>
+                    <button id="addFeaturedBtn" class="primary-btn" onclick="openAddModal()"><i class="fa-solid fa-plus"></i> Adicionar Livro</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Onde os Múltiplos Carrosséis vão aparecer -->
+        <div id="multiCarouselsContainer" style="padding-bottom: 50px;"></div>
+    </div>
+
+    <!-- VISÃO 2: SUA COLEÇÃO (Oculta por padrão) -->
+    <div id="librarySection" style="display: none; padding: 30px 20px; margin-top: 60px;">
+        <!-- Estatísticas de leitura -->
+        <div id="statsSection" style="display:none; margin-bottom: 35px;">
+            <h2 style="font-size: 1.3rem; font-weight: 700; margin-bottom: 15px; border-left: 4px solid var(--primary-red); padding-left: 10px;">Sua leitura</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <span class="stat-value" id="statToday">0 min</span>
+                    <span class="stat-label">Hoje</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-value" id="statStreak">0</span>
+                    <span class="stat-label">Dias seguidos</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-value" id="statTotal">0 min</span>
+                    <span class="stat-label">Total</span>
+                </div>
+            </div>
+            <div class="week-chart" id="weekChart"></div>
+        </div>
+
+        <h2 id="collectionTitle" style="font-size: 1.5rem; font-weight: 700; margin-bottom: 20px; border-left: 4px solid var(--primary-red); padding-left: 10px;">Sua Estante</h2>
+        <div id="bookList"></div>
+
+        <!-- Resultados da busca nas bibliotecas externas (Google Books/Internet Archive/Gutenberg) -->
+        <div id="externalResultsSection" style="display:none; margin-top: 40px;">
+            <h2 style="font-size: 1.3rem; font-weight: 700; margin-bottom: 20px; border-left: 4px solid var(--primary-red); padding-left: 10px;">Encontrados em outras bibliotecas</h2>
+            <div id="externalLoading" style="display:none; text-align:center; color: #888; padding: 20px;">
+                <div class="spinner"></div>
+                <p>Buscando na biblioteca mundial...</p>
+            </div>
+            <div id="externalResults" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px;">
+                <!-- Os livros aparecerão aqui -->
+            </div>
+        </div>
+    </div>
+
+        <div id="addBookModal" class="modal-overlay">
+        <div class="modal-content">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h2>Adicionar Livro</h2>
+                <button onclick="closeModal()" aria-label="Fechar" title="Fechar" style="cursor:pointer; font-size:2rem; background:none; border:none; color:inherit; line-height:1;">&times;</button>
+            </div>
+            <form id="bookForm">
+                <div class="file-drop-area" onclick="document.getElementById('epubFileInput').click()">
+                    <i class="fa-solid fa-upload"></i>
+                    <p id="epubFileStatus">Clique para selecionar o arquivo</p>
+                </div>
+                <input type="text" id="bookTitleInput" class="form-input" placeholder="Título *" required>
+                <input type="text" id="bookAuthorInput" class="form-input" placeholder="Autor *" required>
+                <textarea id="bookDescriptionInput" class="form-textarea" placeholder="Descrição" rows="4"></textarea>
+                <div style="display:flex; justify-content:flex-end; gap:10px;">
+                    <button type="button" onclick="closeModal()" style="background:#444;color:white;padding:10px;border-radius:5px;border:none;cursor:pointer;">Cancelar</button>
+                    <button type="submit" id="submitBookBtn" style="background:var(--primary-red);color:white;padding:10px 20px;border-radius:5px;border:none;font-weight:bold;cursor:pointer;">Adicionar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="descriptionModal">
+        <div class="modal-content">
+            <button onclick="closeDescriptionModal()" aria-label="Fechar" title="Fechar" style="position:absolute;top:15px;right:15px;font-size:2rem;cursor:pointer;color:var(--light-text);background:none;border:none;line-height:1;">&times;</button>
+            <div class="desc-header">
+                <img id="descCover" class="desc-cover" src="" alt="Capa">
+                <div style="flex-grow:1; margin-left:20px;">
+                    <h3 id="descTitle" style="font-size:2rem; font-weight:700;"></h3>
+                    <p id="descAuthor" style="color:var(--light-text);"></p>
+                    <button id="descReadBtn" class="read-btn" style="max-width:150px; margin-top:15px;">Ler Agora</button>
+                </div>
+            </div>
+            <div id="descDescription" class="desc-text-content"></div>
+        </div>
+    </div>
+
+    <div id="toastContainer"></div>
+    <div id="confirmModal">
+        <div class="confirm-box">
+            <p id="confirmMessage"></p>
+            <div class="confirm-actions">
+                <button id="confirmCancelBtn">Cancelar</button>
+                <button id="confirmOkBtn">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/epubjs/dist/epub.min.js"></script>
+
+    <script type="module" src="js/index.js"></script>
+</body>
+</html>
+

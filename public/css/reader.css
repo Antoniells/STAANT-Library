@@ -1,0 +1,185 @@
+        :root {
+            --primary-red: #e50914;
+            --dark-bg: #121212;
+            --border-gray: #374151;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--dark-bg);
+            color: #fff;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        /* ── HEADERS FIXOS ── */
+        #ui-wrapper {
+            position: fixed; top: 0; left: 0;
+            width: 100%; z-index: 200;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+        /* Chrome imersivo (rolagem estilo YouVersion e modo tela cheia): a barra some
+           via JS/toque, não por :hover (que não existe em toque). */
+        #ui-wrapper.ui-hidden { transform: translateY(-100%); opacity: 0; pointer-events: none; }
+        /* A barra de fonte (embaixo) some junto com a barra superior — !important pra
+           vencer as classes do Tailwind (opacity-40/hover:opacity-100) sempre. */
+        #fontSizeBar.ui-hidden { opacity: 0 !important; pointer-events: none; }
+
+        .glass-header {
+            background: rgba(31, 31, 31, 0.98);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-gray);
+        }
+
+        /* ── ÁREA DE LEITURA — modo páginas ── */
+        #reader-container {
+            position: fixed;
+            top: 112px; left: 0;
+            width: 100%;
+            height: calc(100vh - 112px);
+            overflow: hidden;
+            background-color: var(--dark-bg);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+        :fullscreen #reader-container { top: 0; height: 100vh; }
+        /* Acompanha o header sumindo na rolagem imersiva */
+        #reader-container.chrome-hidden { top: 0; height: 100vh; }
+
+        /* ── ÁREA DE LEITURA — modo scroll ── */
+        #reader-container.scroll-mode {
+            overflow-y: auto;
+            overflow-x: hidden;
+            transition: top 0.3s ease, height 0.3s ease;
+        }
+
+        /* viewer — modo páginas */
+        #viewer {
+            width: 100%;
+            max-width: 800px;
+            height: 100%;
+            background-color: white;
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
+            position: relative;
+        }
+        #viewer iframe {
+            width: 100% !important;
+            height: 100% !important;
+            display: block !important;
+            border: none !important;
+        }
+
+        /* ── SCROLL VIEWER — renderização direta no DOM, sem iframe ── */
+        #scroll-viewer {
+            display: none;
+            width: 100%;
+            max-width: 800px;
+            padding: 24px 40px 100px;
+            font-family: Georgia, 'Times New Roman', serif;
+            font-size: 16px;
+            line-height: 1.75;
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
+        }
+        #scroll-viewer.active { display: block; }
+
+        /* Temas */
+        #scroll-viewer.theme-sepia { background: #f4ecd8; color: #5b4636; }
+        #scroll-viewer.theme-dark  { background: #1a1a1a; color: #e0e0e0; }
+        #scroll-viewer.theme-light { background: #ffffff; color: #1a1a1a; }
+
+        #scroll-viewer h1, #scroll-viewer h2, #scroll-viewer h3 { margin-top: 2em; margin-bottom: 0.5em; }
+        #scroll-viewer p { margin: 0 0 1em; }
+        #scroll-viewer img { max-width: 100%; height: auto; display: block; margin: 1em auto; }
+        #scroll-viewer a { color: inherit; }
+
+        /* Transição entre capítulos: respiro generoso em vez de uma linha "parede",
+           pra leitura fluir contínua (estilo Apple Books). O ornamento discreto
+           marca a passagem sem cortar o texto. */
+        .chapter-sep {
+            border: none;
+            margin: 4.5em 0;
+            height: 1px;
+            text-align: center;
+            overflow: visible;
+        }
+        .chapter-sep::after {
+            content: '❧';
+            display: block;
+            margin-top: -0.75em;
+            font-size: 1.1rem;
+            color: currentColor;
+            opacity: 0.25;
+        }
+        /* O primeiro título do capítulo não precisa empurrar mais ainda pra baixo */
+        .chapter-sep + div > :first-child { margin-top: 0; }
+
+        /* Loading no centro do container */
+        #scroll-loading {
+            display: none;
+            width: 100%;
+            text-align: center;
+            padding: 60px 20px;
+            color: #888;
+            font-size: 0.9rem;
+        }
+        #scroll-loading.active { display: block; }
+
+        /* Zonas de toque para virar página — só nas bordas, o centro fica livre
+           pra seleção nativa de texto (marcar destaques) chegar até o conteúdo. */
+        .touch-zone {
+            position: absolute;
+            top: 0; bottom: 0; width: 25%;
+            z-index: 10;
+            background: transparent;
+            touch-action: none;
+        }
+        .touch-zone-left  { left: 0; }
+        .touch-zone-right { right: 0; }
+
+        .tap-feedback {
+            position: fixed;
+            width: 56px; height: 56px; border-radius: 50%;
+            background: rgba(229, 9, 20, 0.2);
+            pointer-events: none;
+            transform: translate(-50%, -50%) scale(0);
+            transition: transform 0.2s ease, opacity 0.3s ease;
+            z-index: 300; opacity: 0;
+        }
+        .tap-feedback.show { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+
+        /* Transição de página */
+        #viewer { position: relative; }
+        #page-transition {
+            position: absolute; inset: 0; z-index: 20;
+            pointer-events: none; overflow: hidden; display: none;
+        }
+        #page-slide { position: absolute; inset: 0; will-change: transform, opacity; }
+
+        /* Indicador de carregamento do PDF */
+        #pdf-loading {
+            display: none; width: 100%; text-align: center;
+            padding: 60px 20px; color: #888; font-size: 0.9rem;
+        }
+        #pdf-loading.active { display: block; }
+
+
+        /* Controles */
+        .nav-button {
+            background: var(--primary-red);
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s;
+        }
+        .nav-button:hover { background: #f87171; transform: scale(1.05); }
+
+        .control-select {
+            background: #2d2d2d; border: 1px solid #444;
+            border-radius: 6px; padding: 4px 8px;
+            font-size: 0.85rem; color: #ccc; outline: none;
+        }
+
+        #bookmarkBtn { opacity: 0.5; pointer-events: none; }
+        #bookmarkBtn.enabled { opacity: 1; pointer-events: auto; }
+@keyframes spin { to { transform: rotate(360deg); } }

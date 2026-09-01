@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "staant-web",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["-y", "serve", "public", "-p", "5173", "-c", "C:\\Users\\anton\\AppData\\Local\\Temp\\claude\\C--Users-anton-Desktop-Staant-V-2---Copia\\17fba458-721b-4a63-af1a-a9cf4271b884\\scratchpad\\serve.json"],
+      "port": 5173
+    }
+  ]
+}

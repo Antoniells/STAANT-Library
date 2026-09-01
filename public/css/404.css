@@ -1,13 +1,3 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>404 - Página Não Encontrada | STAANT</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-    
-    <style>
         :root {
             --primary-red: #e50914;
             --dark-bg: #121212;
@@ -88,22 +78,3 @@
             display: block;
             text-decoration: none;
         }
-    </style>
-</head>
-<body>
-
-    <div class="container">
-        <a href="index.html" class="logo">STAANT</a>
-        
-        <div class="error-code">404</div>
-        <h1>Ops! Esse livro não está na estante.</h1>
-        <p>A página que você está procurando pode ter sido removida ou o endereço está incorreto.</p>
-        
-        <a href="index.html" class="back-btn">
-            <i class="fa-solid fa-house"></i>
-            Voltar para a Biblioteca
-        </a>
-    </div>
-
-</body>
-</html>

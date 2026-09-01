@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <link rel="icon" type="image/png" href="icons/icon-50.png">
+    <link rel="apple-touch-icon" href="icons/icon-150.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Criar Conta - STAANT</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/register.css">
+</head>
+<body>
+    <div class="container">
+        <h1 style="color: var(--primary-red); margin-bottom: 5px; font-size: 2.5rem; letter-spacing: 2px;">STAANT</h1>
+        <p style="color: #aaa; margin-bottom: 20px; font-size: 0.9rem;">Crie sua conta</p>
+        
+        <div id="messageArea"></div>
+
+        <form id="registerForm">
+            <input type="text" id="name" placeholder="Nome Completo" required>
+            <input type="email" id="email" placeholder="E-mail" required>
+            <input type="password" id="password" placeholder="Senha (mín. 6 caracteres)" required minlength="6">
+            <input type="password" id="confirmPassword" placeholder="Confirmar Senha" required minlength="6">
+            
+            <!-- Seção estilo Spotify -->
+            <div class="genres-section">
+                <div class="genres-title">Do que você gosta de ler? (Escolha 1 ou mais)</div>
+                <div class="genre-grid" id="genreGrid">
+                    <div class="genre-chip" data-topic="fiction">Ficção</div>
+                    <div class="genre-chip" data-topic="science fiction">Ficção Científica</div>
+                    <div class="genre-chip" data-topic="fantasy">Fantasia</div>
+                    <div class="genre-chip" data-topic="romance">Romance</div>
+                    <div class="genre-chip" data-topic="mystery">Mistério</div>
+                    <div class="genre-chip" data-topic="history">História</div>
+                    <div class="genre-chip" data-topic="adventure">Aventura</div>
+                    <div class="genre-chip" data-topic="philosophy">Filosofia</div>
+                </div>
+            </div>
+
+            <button type="submit" id="btnRegister">Cadastrar</button>
+        </form>
+        
+        <div class="links">
+            <a href="login.html">Já tem uma conta? Entre aqui</a>
+        </div>
+    </div>
+
+    <script type="module" src="js/register.js"></script>
+</body>
+</html>

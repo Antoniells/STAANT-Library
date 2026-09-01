@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <link rel="icon" type="image/png" href="icons/icon-50.png">
+    <link rel="apple-touch-icon" href="icons/icon-150.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Leitor - STAANT</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <link rel="stylesheet" href="css/reader.css">
+</head>
+<body>
+
+    <div id="tapFeedback" class="tap-feedback"></div>
+
+    <div id="readerError" style="display:none; position:fixed; inset:0; z-index:5000; background:var(--dark-bg); flex-direction:column; align-items:center; justify-content:center; gap:16px; text-align:center; padding:20px;">
+        <i class="fa-solid fa-triangle-exclamation" style="font-size:2.5rem; color:var(--primary-red);"></i>
+        <p id="readerErrorMsg" style="max-width:320px; color:#ccc;">Não foi possível carregar este livro.</p>
+        <button onclick="window.location.href='index.html'" style="background:var(--primary-red);color:#fff;border:none;padding:12px 24px;border-radius:8px;font-weight:bold;cursor:pointer;">Voltar à Biblioteca</button>
+    </div>
+
+    <div id="confirmModal" style="display:none; position:fixed; inset:0; z-index:6000; background:rgba(0,0,0,0.75); backdrop-filter:blur(3px); align-items:center; justify-content:center; padding:20px;">
+        <div style="background:#1f1f1f; border:1px solid #333; border-radius:16px; padding:26px; max-width:340px; width:100%; text-align:center;">
+            <p id="confirmMessage" style="color:#eee; margin:0 0 20px; font-size:0.95rem; line-height:1.4;"></p>
+            <div style="display:flex; gap:10px;">
+                <button id="confirmCancelBtn" style="flex:1; padding:12px; border:none; border-radius:8px; font-weight:bold; cursor:pointer; background:#333; color:#fff;">Cancelar</button>
+                <button id="confirmOkBtn" style="flex:1; padding:12px; border:none; border-radius:8px; font-weight:bold; cursor:pointer; background:var(--primary-red); color:#fff;">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="ui-wrapper">
+        <header class="glass-header w-full h-14 flex items-center px-4 gap-2">
+            <div class="flex items-center gap-3 min-w-0 flex-1">
+                <button onclick="window.location.href='index.html'" class="text-gray-400 hover:text-white transition-colors shrink-0" aria-label="Voltar à biblioteca" title="Voltar">
+                    <i class="fa-solid fa-arrow-left text-xl"></i>
+                </button>
+                <h1 id="bookTitle" class="text-sm font-bold uppercase tracking-widest text-gray-300 truncate min-w-0">CARREGANDO...</h1>
+            </div>
+            <div class="flex items-center gap-3 shrink-0">
+                <button id="bookmarkBtn" class="text-gray-500 text-lg transition-all" aria-label="Marcar trecho selecionado" title="Marcar">
+                    <i id="bookmarkIcon" class="fa-solid fa-bookmark"></i>
+                </button>
+                <button id="fullscreenBtn" class="text-gray-400 hover:text-red-500" aria-label="Alternar tela cheia" title="Tela cheia">
+                    <i id="fullscreenIcon" class="fa-solid fa-expand"></i>
+                </button>
+            </div>
+        </header>
+
+        <nav class="glass-header w-full h-14 flex items-center px-4 justify-between">
+            <div class="flex items-center gap-2">
+                <button id="prevBtn" class="nav-button w-8 h-8 rounded-full text-white" aria-label="Página anterior" title="Anterior">
+                    <i class="fa-solid fa-chevron-left text-xs"></i>
+                </button>
+                <span id="pageCounter" class="text-[10px] font-mono text-gray-400 w-24 text-center">Iniciando...</span>
+                <button id="nextBtn" class="nav-button w-8 h-8 rounded-full text-white" aria-label="Próxima página" title="Próxima">
+                    <i class="fa-solid fa-chevron-right text-xs"></i>
+                </button>
+            </div>
+            <div class="hidden md:flex items-center gap-4">
+                <select id="chaptersDropdown" class="control-select w-40" aria-label="Ir para capítulo"></select>
+                <select id="highlightsDropdown" class="control-select w-40" aria-label="Destaques salvos">
+                    <option value="" disabled selected>Destaques</option>
+                </select>
+                <select id="themeDropdown" class="control-select" aria-label="Tema de leitura">
+                    <option value="dark">Escuro</option>
+                    <option value="sepia">Sépia</option>
+                    <option value="light">Claro</option>
+                </select>
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="w-20 h-1 bg-gray-700 rounded-full overflow-hidden">
+                    <div id="progressBar" class="bg-red-600 h-full w-0 transition-all duration-300"></div>
+                </div>
+                <span id="progressPercent" class="text-[10px] text-red-500 font-bold">0%</span>
+            </div>
+        </nav>
+    </div>
+
+    <div id="reader-container">
+        <!-- Modo páginas -->
+        <div id="viewer"></div>
+        <div id="page-transition"><div id="page-slide"></div></div>
+        <div id="touch-zone-left" class="touch-zone touch-zone-left"></div>
+        <div id="touch-zone-right" class="touch-zone touch-zone-right"></div>
+        <!-- Modo scroll -->
+        <div id="scroll-loading">
+            <div style="width:32px;height:32px;border:3px solid #333;border-top-color:#e50914;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px;"></div>
+            Carregando livro...
+        </div>
+        <div id="scroll-viewer"></div>
+        <div id="pdf-viewer" style="display: none; width: 100%; height: 100%; overflow-y: auto; justify-content: center; align-items: flex-start; padding: 20px;">
+            <div id="pdf-loading">
+                <div style="width:32px;height:32px;border:3px solid #333;border-top-color:#e50914;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px;"></div>
+                Carregando PDF...
+            </div>
+            <canvas id="pdf-canvas" style="max-width: 100%; box-shadow: 0 0 20px rgba(0,0,0,0.5); background-color: white;"></canvas>
+        </div>
+    </div>
+
+
+    <div id="fontSizeBar" class="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 bg-[#1f1f1f]/90 backdrop-blur-md px-6 py-3 rounded-2xl border border-gray-700 flex items-center gap-6 shadow-2xl opacity-40 hover:opacity-100 transition-opacity">
+        <button onclick="changeFontSize(-2)" class="text-gray-400 hover:text-white transition-colors p-2" aria-label="Diminuir fonte" title="Diminuir fonte">
+            <span class="text-sm font-bold italic">A</span>
+        </button>
+        <div class="h-4 w-[1px] bg-gray-600"></div>
+        <span id="fontSizeDisplay" class="text-xs font-mono text-gray-400 min-w-[40px] text-center">16px</span>
+        <div class="h-4 w-[1px] bg-gray-600"></div>
+        <button onclick="changeFontSize(2)" class="text-gray-400 hover:text-white transition-colors p-2" aria-label="Aumentar fonte" title="Aumentar fonte">
+            <span class="text-xl font-bold italic">A</span>
+        </button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/epubjs/dist/epub.min.js"></script>
+
+    <script type="module" src="js/reader.js"></script>
+</body>
+</html>

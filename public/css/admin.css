@@ -1,0 +1,43 @@
+        :root {
+            --primary-red: #e50914;
+            --dark-bg: #121212;
+            --card-bg: #1f1f1f;
+        }
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--dark-bg);
+            color: #fff;
+            margin: 0;
+            overflow-x: hidden;
+        }
+        .admin-table th {
+            text-align: left;
+            border-bottom: 1px solid #333;
+            padding: 12px;
+            color: #aaa;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 1px;
+        }
+        .admin-table td {
+            padding: 15px 12px;
+            border-bottom: 1px solid #262626;
+            word-break: break-word;
+            overflow-wrap: anywhere;
+        }
+        .stat-card {
+            background-color: var(--card-bg);
+            border-left: 4px solid var(--primary-red);
+            transition: transform 0.3s ease;
+        }
+        .stat-card:hover { transform: translateY(-5px); }
+
+        @media (max-width: 640px) {
+            .admin-table thead { display: none; }
+            .admin-table, .admin-table tbody, .admin-table tr, .admin-table td { display: block; width: 100%; }
+            .admin-table tr { margin-bottom: 15px; background: #1f1f1f; border-radius: 12px; padding: 15px; border: 1px solid #333; }
+            .admin-table td { text-align: right; padding-left: 40%; position: relative; border-bottom: 1px solid #262626; min-height: 45px; display: flex; align-items: center; justify-content: flex-end; }
+            .admin-table td:last-child { border-bottom: none; }
+            .admin-table td::before { content: attr(data-label); position: absolute; left: 10px; width: 35%; font-weight: bold; text-align: left; color: var(--primary-red); font-size: 0.7rem; text-transform: uppercase; }
+            .email-cell { font-size: 0.8rem !important; word-break: break-all; }
+        }

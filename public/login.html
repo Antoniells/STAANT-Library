@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <link rel="icon" type="image/png" href="icons/icon-50.png">
+    <link rel="apple-touch-icon" href="icons/icon-150.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - STAANT</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700;900&family=Caveat:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/login.css">
+</head>
+<body>
+    
+    <div class="scribble-overlay"></div>
+
+    <div class="container">
+        <h1>STAANT</h1>
+        <div class="subtitle">Sua estante digital sem limites</div>
+        
+        <div id="messageArea"></div>
+
+        <form id="loginForm">
+            <input type="email" id="email" placeholder="Email ou número de telefone" required>
+            <input type="password" id="password" placeholder="Senha" required>
+            
+            <!-- CAPTCHA SIMPLES -->
+            <div class="captcha-container">
+                <span class="captcha-question" id="captchaLabel">Prove que é humano:</span>
+                <input type="number" id="captchaInput" placeholder="?" required>
+            </div>
+
+            <button type="submit" id="btnEntrar">Entrar</button>
+        </form>
+
+        <div class="divider">OU</div>
+
+        <!-- BOTÃO GOOGLE -->
+        <button id="btnGoogle" class="google-btn">
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+            Entrar com Google
+        </button>
+
+        <div class="links">
+            <a href="forgot-password.html">Esqueceu a senha?</a>
+        </div>
+
+        <div class="register-text">
+            Novo por aqui? <a href="register.html">Registre-se</a>
+        </div>
+    </div>
+
+    <script src="js/login-redirect.js"></script>
+
+    <script type="module" src="js/login.js"></script>
+</body>
+</html>

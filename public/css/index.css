@@ -1,0 +1,416 @@
+        /* --- VARIÁVEIS GLOBAIS --- */
+        :root {
+            --primary-red: #e50914;
+            --dark-bg: #121212;
+            --card-bg: #1f1f1f;
+            --input-bg: #2d2d2d;
+            --text-color: #fff;
+            --light-text: #ccc;
+        }
+
+        #epubFileInput { display: none !important; }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0; padding: 0;
+            background-color: var(--dark-bg);
+            color: var(--text-color);
+            overflow-x: hidden;
+        }
+
+        /* --- LOADING --- */
+        #loadingOverlay {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-color: var(--dark-bg);
+            z-index: 9999;
+            display: flex; justify-content: center; align-items: center;
+            visibility: visible; opacity: 1;
+            transition: opacity 0.4s ease;
+        }
+        #loadingOverlay.hidden { visibility: hidden; opacity: 0; pointer-events: none; }
+        .loading-content { text-align: center; color: var(--text-color); font-size: 1.2rem; font-weight: 500; }
+        .spinner {
+            width: 40px; height: 40px;
+            border: 4px solid #333;
+            border-radius: 50%;
+            border-top: 4px solid transparent;
+            border-right: 4px solid var(--primary-red);
+            margin: 0 auto 15px auto;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* --- BARRA SUPERIOR --- */
+        .welcome-message {
+            position: fixed; top: 25px; left: 20px;
+            z-index: 10; font-size: 1.1rem; font-weight: 500; color: var(--light-text);
+        }
+        #top-utility-container {
+            position: fixed; top: 20px; right: 20px;
+            z-index: 1000; display: flex; align-items: center; gap: 15px;
+        }
+        #searchContainer {
+            display: flex; align-items: center;
+            background-color: rgba(45, 45, 45, 0.8);
+            border-radius: 25px; padding: 5px 15px;
+            backdrop-filter: blur(5px); width: 250px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+        .search-input {
+            flex-grow: 1; background: transparent; border: none;
+            color: var(--text-color); padding: 5px 0; font-size: 1rem; outline: none;
+        }
+        .search-input::placeholder { color: var(--light-text); opacity: 0.7; }
+        .icon-btn {
+            background: none; border: none; color: #fff;
+            font-size: 1.5rem; cursor: pointer; display: none; transition: color 0.2s;
+        }
+        .icon-btn:hover { color: var(--primary-red); }
+        #addBookBtn {
+            background-color: var(--primary-red); color: var(--text-color);
+            padding: 10px 15px; border: none; border-radius: 5px;
+            font-weight: 700; cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.4); transition: background-color 0.2s;
+        }
+        #addBookBtn:hover { background-color: #f87171; }
+        #adminPanelBtn {
+            background-color: #333; color: var(--text-color);
+            padding: 10px 15px; border: 1px solid #444; border-radius: 5px;
+            font-weight: 700; cursor: pointer; display: none; transition: all 0.2s;
+        }
+        #adminPanelBtn:hover { background-color: #444; border-color: var(--primary-red); }
+        #logoutBtn { background: none; border: none; color: var(--light-text); cursor: pointer; font-size: 1.2rem; }
+
+        /* --- BUSCA MOBILE --- */
+        #mobileSearchRow {
+            position: fixed; top: 70px; left: 0;
+            width: 100%; z-index: 999; display: none;
+            box-sizing: border-box;
+        }
+        #mobileSearchRow.active { display: block; padding: 0 20px; }
+        .mobile-search-box {
+            background: rgba(45,45,45,0.95); border-radius: 10px;
+            padding: 10px; border: 1px solid #444;
+        }
+        #searchInputMobile {
+            width: 100%; background: transparent; border: none; color: #fff;
+            outline: none; box-sizing: border-box;
+        }
+
+        /* --- SIDEBAR (único, correto) --- */
+        #sidebarOverlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.6);
+            display: none; z-index: 1999;
+            backdrop-filter: blur(2px);
+        }
+        #sidebar {
+            background-color: #121212;
+            width: 280px; height: 100vh;
+            position: fixed; top: 0; left: -280px;
+            z-index: 2000; transition: left 0.3s ease;
+            border-right: 1px solid #1f1f1f;
+            padding: 20px 0;
+            display: flex; flex-direction: column;
+        }
+        #sidebar.active { left: 0; }
+        .menu-title {
+            color: var(--primary-red); font-size: 1.25rem;
+            font-weight: bold; padding: 0 24px; margin-bottom: 20px;
+        }
+        .close-sidebar {
+            position: absolute; top: 15px; right: 20px;
+            color: white; font-size: 1.5rem;
+            background: transparent; border: none; cursor: pointer;
+        }
+        .sidebar-btn {
+            display: flex; align-items: center; gap: 15px;
+            width: 100%; padding: 16px 24px;
+            background: transparent; border: none;
+            color: white; font-size: 1rem; font-weight: 500;
+            cursor: pointer; transition: background 0.2s; text-align: left;
+        }
+        .sidebar-btn:hover { background: rgba(255,255,255,0.05); }
+        .sidebar-btn i { font-size: 1.2rem; }
+        #adminSidebarBtn { display: none; color: var(--primary-red); }
+        .sidebar-footer {
+            margin-top: auto; margin-bottom: 30px;
+            text-align: center; font-size: 10px;
+            color: rgba(255,255,255,0.2);
+            text-transform: uppercase; letter-spacing: 1px;
+            pointer-events: none; font-weight: 500;
+        }
+
+        /* --- MODAL CONFIGURAÇÕES --- */
+        #settingsModal {
+            display: none; position: fixed; inset: 0;
+            z-index: 9999; background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(8px);
+            align-items: center; justify-content: center; padding: 20px;
+        }
+        .settings-content {
+            background: #121212; width: 90%; max-width: 380px;
+            border-radius: 32px; border: 1px solid #1f1f1f;
+            padding: 30px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.7);
+        }
+        .settings-list { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+        .settings-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 18px 20px; background: #2a2a2a; border-radius: 16px;
+            color: white; cursor: pointer; transition: background 0.2s;
+        }
+        .settings-item:hover { background: #333; }
+        .settings-item.disabled { opacity: 0.5; cursor: default; pointer-events: none; }
+        .item-left { display: flex; align-items: center; gap: 15px; font-size: 1.1rem; font-weight: 600; }
+        .item-left i { width: 25px; text-align: center; }
+        .submenu-wrapper {
+            max-height: 0; overflow: hidden;
+            transition: max-height 0.3s ease-out;
+            background-color: rgba(0,0,0,0.2); border-radius: 12px;
+        }
+        .submenu-inner { padding: 15px; display: flex; flex-direction: column; gap: 12px; }
+        .theme-sub-btn {
+            width: 100%; padding: 14px; border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background-color: #2a2a2a; color: #9ca3af;
+            font-weight: 600; font-size: 0.9rem;
+            cursor: pointer; text-align: center; transition: all 0.2s ease;
+        }
+        .theme-sub-btn:hover { background-color: #333; color: white; }
+        .theme-sub-btn:active { transform: scale(0.97); }
+        .theme-sub-btn.selected { border-color: var(--primary-red); color: #fff; }
+        .theme-sub-btn[data-theme="dark"]  { border-left: 4px solid #444; }
+        .theme-sub-btn[data-theme="sepia"] { border-left: 4px solid #d2c29d; }
+        .theme-sub-btn[data-theme="light"] { border-left: 4px solid #fff; }
+        .read-mode-btn {
+            width: 100%; padding: 14px 16px; border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background-color: #2a2a2a; color: #9ca3af;
+            font-weight: 600; font-size: 0.9rem;
+            cursor: pointer; text-align: left; transition: all 0.2s ease;
+            display: flex; align-items: center; gap: 12px;
+        }
+        .read-mode-btn:hover { background-color: #333; color: white; }
+        .read-mode-btn:active { transform: scale(0.97); }
+        .read-mode-btn.selected { border-color: var(--primary-red); color: #fff; }
+        .read-mode-btn[data-mode="paginated"] { border-left: 4px solid #6366f1; }
+        .read-mode-btn[data-mode="scroll"]    { border-left: 4px solid #22c55e; }
+        .read-mode-btn .mode-desc { font-size: 0.72rem; color: #666; font-weight: 400; display: block; margin-top: 2px; }
+        .save-settings-btn {
+            width: 100%; margin-top: 20px;
+            background: var(--primary-red); color: white;
+            padding: 16px; border-radius: 16px;
+            font-weight: bold; text-transform: uppercase; letter-spacing: 1px;
+            box-shadow: 0 10px 20px rgba(229,9,20,0.2);
+            transition: all 0.2s; border: none; cursor: pointer;
+        }
+        .save-settings-btn:active { transform: scale(0.96); background: #c40812; }
+
+        /* --- HERO --- */
+        #hero {
+            position: relative; min-height: 400px;
+            background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.9)),
+                        url('https://images.unsplash.com/photo-1512820790803-83ca734da794?q=80&w=1500&auto=format&fit=crop') center/cover no-repeat;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            text-align: center;
+            /* Espaço no topo pra não passar por baixo da barra fixa; cresce com o conteúdo */
+            padding: 90px 20px 40px;
+            box-shadow: 0 10px 15px rgba(0,0,0,0.5);
+        }
+        .hero-content { max-width: 600px; }
+        .hero-content h2 { font-size: 2.5rem; font-weight: 700; margin: 10px 0; }
+        .hero-content p { font-size: 1rem; font-weight: 400; margin-bottom: 30px; color: var(--light-text); }
+        .hero-buttons { display: flex; justify-content: center; width: 100%; }
+        .hero-buttons button { padding: 10px 25px; margin: 0 10px; border: none; border-radius: 5px; font-weight: 500; cursor: pointer; transition: background-color 0.2s; }
+        .hero-buttons .primary-btn { background-color: var(--text-color); color: var(--dark-bg); }
+        .hero-buttons .secondary-btn { background-color: rgba(255,255,255,0.1); color: var(--text-color); border: 1px solid rgba(255,255,255,0.3); }
+
+        /* --- BIBLIOTECA --- */
+        #librarySection { padding: 30px 20px; }
+        #librarySection h2 { font-size: 1.5rem; font-weight: 700; margin-bottom: 20px; border-left: 4px solid var(--primary-red); padding-left: 10px; }
+        #bookList { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 25px; justify-content: center; }
+
+        /* --- CARDS --- */
+        .book-card-modern {
+            position: relative; height: 280px;
+            background-size: cover; background-position: center;
+            border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.7);
+            overflow: hidden; transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .book-card-modern:hover { transform: translateY(-5px) scale(1.02); box-shadow: 0 8px 20px rgba(229,9,20,0.7); }
+
+        /* --- REORDENAR ARRASTANDO --- */
+        .book-card-modern.dragging {
+            opacity: 0.4;
+            transform: scale(0.97);
+            box-shadow: 0 0 0 2px var(--primary-red);
+        }
+        /* Segurar pra arrastar (toque): dá um "chacoalhão" avisando que soltou do lugar */
+        .book-card-modern.drag-ready {
+            transform: scale(1.04);
+            box-shadow: 0 10px 28px rgba(229,9,20,0.6);
+            z-index: 30;
+        }
+        #bookList.is-reordering .book-card-modern { transition: transform 0.18s ease; }
+        #bookList.is-reordering .book-card-modern:hover { transform: none; box-shadow: 0 5px 15px rgba(0,0,0,0.7); }
+        /* Gradiente reforçado: garante contraste do texto mesmo sobre capas claras
+           ou cheias de texto. A base fica quase opaca e sobe suavemente. */
+        .card-overlay {
+            position: absolute; inset: 0;
+            background: linear-gradient(to top,
+                rgba(0,0,0,0.97) 0%,
+                rgba(0,0,0,0.92) 30%,
+                rgba(0,0,0,0.75) 52%,
+                rgba(0,0,0,0.35) 72%,
+                rgba(0,0,0,0) 100%);
+            display: flex; flex-direction: column; justify-content: flex-end; padding: 15px;
+        }
+        .card-title {
+            font-size: 1.1rem; font-weight: 700; line-height: 1.2; margin-bottom: 2px;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+        }
+        .card-author {
+            font-size: 0.85rem; color: var(--light-text); margin-bottom: 12px;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+        }
+        .card-actions { display: flex; gap: 8px; }
+        .read-btn { flex-grow: 1; display: flex; justify-content: center; align-items: center; background-color: var(--primary-red); color: var(--text-color); padding: 8px 5px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem; }
+        .info-btn, .remove-btn { background-color: rgba(255,255,255,0.1); color: var(--text-color); padding: 8px; border: none; border-radius: 6px; cursor: pointer; width: 35px; }
+        .offline-badge {
+            position: absolute; top: 8px; right: 8px; z-index: 15;
+            width: 28px; height: 28px; border-radius: 50%;
+            background: rgba(0,0,0,0.6); color: #ccc;
+            border: none; display: flex; align-items: center; justify-content: center;
+            font-size: 0.85rem; cursor: pointer; transition: background-color 0.2s;
+        }
+        .offline-badge.saved { background: rgba(34,197,94,0.9); color: #fff; }
+        .offline-badge:hover { background: rgba(0,0,0,0.85); }
+        .offline-badge.saved:hover { background: rgba(22,163,74,0.9); }
+/* --- ESTATÍSTICAS DE LEITURA --- */
+        .stats-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr);
+            gap: 15px; margin-bottom: 20px;
+        }
+        .stat-card {
+            background: var(--card-bg); border-radius: 12px;
+            padding: 18px 12px; text-align: center;
+            border-left: 3px solid var(--primary-red);
+        }
+        .stat-value {
+            display: block; font-size: 1.5rem; font-weight: 700; color: #fff;
+        }
+        .stat-label {
+            display: block; font-size: 0.7rem; color: #888;
+            text-transform: uppercase; letter-spacing: 0.08em; margin-top: 4px;
+        }
+        .week-chart {
+            display: flex; align-items: flex-end; justify-content: space-between;
+            gap: 8px; height: 90px; background: var(--card-bg);
+            border-radius: 12px; padding: 14px 16px 10px;
+        }
+        .week-bar-wrap {
+            flex: 1; display: flex; flex-direction: column;
+            align-items: center; justify-content: flex-end; height: 100%; gap: 6px;
+        }
+        .week-bar {
+            width: 100%; max-width: 34px; border-radius: 4px 4px 0 0;
+            background: var(--primary-red); min-height: 3px;
+            transition: height 0.3s ease;
+        }
+        .week-bar.empty { background: #333; }
+        .week-day {
+            font-size: 0.65rem; color: #888; text-transform: uppercase;
+        }
+        .week-day.today { color: var(--primary-red); font-weight: bold; }
+
+/* --- CARROSSEL DE RECOMENDAÇÕES --- */
+        #recommendationsSection {
+            padding: 30px 20px 10px 20px;
+            display: none; /* Fica oculto até carregar os livros */
+        }
+        #recommendationsSection h2 {
+            font-size: 1.5rem; font-weight: 700; margin-bottom: 20px;
+            border-left: 4px solid var(--primary-red); padding-left: 10px;
+        }
+        .carousel-container {
+            display: flex; gap: 15px; overflow-x: auto;
+            scroll-behavior: smooth; padding-bottom: 15px;
+            /* Customização da barra de rolagem do carrossel */
+            scrollbar-width: thin;
+            scrollbar-color: var(--primary-red) var(--dark-bg);
+        }
+        .carousel-container::-webkit-scrollbar { height: 8px; }
+        .carousel-container::-webkit-scrollbar-track { background: var(--dark-bg); }
+        .carousel-container::-webkit-scrollbar-thumb { background-color: var(--primary-red); border-radius: 10px; }
+        
+        .carousel-card {
+            flex: 0 0 160px; /* Largura fixa para os cards não encolherem */
+            background: #2a2a2a; border-radius: 8px; overflow: hidden;
+            display: flex; flex-direction: column; transition: transform 0.2s;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+        .carousel-card:hover { transform: translateY(-5px); box-shadow: 0 6px 15px rgba(229,9,20,0.4); }
+        .carousel-card-img { height: 220px; background-size: cover; background-position: center; }
+        .carousel-card-content { padding: 10px; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; }
+        .carousel-card-title {
+            font-size: 0.85rem; font-weight: bold; margin: 0 0 5px 0;
+            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+        }
+        .carousel-card-author { font-size: 0.75rem; color: var(--light-text); margin: 0 0 10px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        /* --- MODAIS --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.85);
+            display: none; justify-content: center; align-items: flex-start;
+            z-index: 3000; overflow-y: auto; padding-top: 50px;
+        }
+        .modal-content {
+            background-color: var(--card-bg); border-radius: 10px;
+            width: 90%; max-width: 600px; padding: 25px; position: relative;
+        }
+        .form-input, .form-textarea {
+            width: 100%; padding: 10px; border: 1px solid #333; border-radius: 5px;
+            background-color: var(--input-bg); color: #fff;
+            margin-bottom: 15px; box-sizing: border-box;
+        }
+        .file-drop-area {
+            border: 2px dashed #444; border-radius: 8px;
+            padding: 20px; text-align: center; cursor: pointer;
+            background-color: var(--input-bg); margin-bottom: 15px;
+        }
+        #descriptionModal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.9);
+            display: none; justify-content: center; align-items: center;
+            z-index: 2000; backdrop-filter: blur(5px);
+        }
+        .desc-header { display: flex; align-items: flex-start; gap: 20px; margin-bottom: 20px; }
+        .desc-cover { width: 150px; height: 200px; object-fit: cover; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        .desc-text-content { font-size: 0.95rem; line-height: 1.6; color: var(--light-text); border-top: 1px solid #333; padding-top: 20px; }
+
+        /* --- TOAST / CONFIRM (substitui alert/confirm nativos) --- */
+        #toastContainer { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 10000; display: flex; flex-direction: column; gap: 10px; align-items: center; pointer-events: none; width: 90%; max-width: 420px; }
+        .toast { background: #262626; color: #fff; padding: 14px 20px; border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); font-size: 0.9rem; border-left: 4px solid var(--primary-red); opacity: 0; transform: translateY(12px); transition: opacity 0.25s ease, transform 0.25s ease; pointer-events: auto; }
+        .toast.show { opacity: 1; transform: translateY(0); }
+        .toast.success { border-left-color: #22c55e; }
+        .toast.info { border-left-color: #3b82f6; }
+        #confirmModal { display: none; position: fixed; inset: 0; z-index: 10001; background: rgba(0,0,0,0.75); align-items: center; justify-content: center; backdrop-filter: blur(3px); }
+        .confirm-box { background: #1f1f1f; border: 1px solid #333; border-radius: 16px; padding: 26px; max-width: 340px; width: 90%; text-align: center; }
+        .confirm-box p { color: #eee; margin: 0 0 20px; font-size: 0.95rem; line-height: 1.4; }
+        .confirm-actions { display: flex; gap: 10px; }
+        .confirm-actions button { flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        #confirmCancelBtn { background: #333; color: #fff; }
+        #confirmOkBtn { background: var(--primary-red); color: #fff; }
+
+        /* --- RESPONSIVO --- */
+        @media (max-width: 768px) {
+            #top-utility-container { width: calc(100% - 40px); justify-content: space-between; left: 20px; right: 20px; }
+            #searchContainer, #addBookBtn, #logoutBtn, #adminPanelBtn { display: none !important; }
+            .icon-btn { display: block; }
+            .welcome-message { display: none; }
+            #bookList { grid-template-columns: repeat(2, 1fr); gap: 15px; }
+            .book-card-modern { height: 220px; }
+            .hero-content h2 { font-size: 1.8rem; }
+        }
