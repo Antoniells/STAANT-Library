@@ -1,7 +1,7 @@
 // Service Worker do STAANT — cache-first pro "esqueleto" do app (HTML/CSS/JS/CDNs),
 // pra abrir instantâneo mesmo sem rede. Os arquivos pesados dos livros NÃO passam por
 // aqui: ficam no IndexedDB (offline-books.js), baixados só quando o usuário pede.
-const CACHE_NAME = 'staant-shell-v8';
+const CACHE_NAME = 'staant-shell-v9';
 
 const SHELL_ASSETS = [
     './',
@@ -36,9 +36,12 @@ const SHELL_ASSETS = [
 ];
 
 self.addEventListener('install', (event) => {
+    // 'reload' pelo mesmo motivo do fetch handler: garante que o pré-cache pegue a
+    // versão nova de verdade, não uma cópia antiga guardada no cache HTTP do navegador.
+    const requests = SHELL_ASSETS.map((url) => new Request(url, { cache: 'reload' }));
     event.waitUntil(
         caches.open(CACHE_NAME)
-            .then((cache) => cache.addAll(SHELL_ASSETS))
+            .then((cache) => cache.addAll(requests))
             .catch((err) => console.warn('SW: falha ao pré-cachear o shell', err))
             .then(() => self.skipWaiting())
     );
@@ -80,9 +83,12 @@ self.addEventListener('fetch', (event) => {
 
     // Cache-first com atualização em segundo plano: responde na hora com o que já
     // tem guardado (abertura instantânea) e, se der rede, atualiza o cache pra próxima.
+    // 'reload' força ir na rede de verdade: sem isso, esse fetch pode ser respondido
+    // pelo cache HTTP comum do navegador (max-age da Firebase Hosting), e o app fica
+    // "preso" numa versão antiga por até 1h mesmo depois de um novo deploy.
     event.respondWith(
         caches.match(req).then((cached) => {
-            const network = fetch(req).then((res) => {
+            const network = fetch(req, { cache: 'reload' }).then((res) => {
                 if (res && (res.ok || res.type === 'opaque')) {
                     const copy = res.clone();
                     caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
