@@ -46,19 +46,28 @@
         }
 
         const MAX_BOOKS = 10;
+        // Chave restrita à Books API e ao domínio da STAANT (ver console.cloud.google.com),
+        // carregada de google-books-key.js — esse arquivo não entra no Git de propósito
+        // (fica só no deploy do Firebase), pra chave nunca aparecer no histórico do repositório.
+        const GOOGLE_BOOKS_API_KEY = window.GOOGLE_BOOKS_API_KEY || '';
 
         // ─── ENRIQUECER DADOS DO LIVRO (Google Books) ──────────────────────────────
         // Completa o que falta: sinopse, capa, autor, ano, páginas e gênero.
         window.buscarInfoGoogleBooks = async (titulo, autor) => {
             if (!titulo || !navigator.onLine) return null;
 
+            // Remove sufixos tipo "(Versão original)", "(edição especial)" etc. que vêm
+            // de resultados de busca de bibliotecas externas e só atrapalham o match.
+            const tituloLimpo = titulo.replace(/\s*\([^)]*\)\s*$/, '').trim() || titulo;
+
             // Cada termo é codificado separadamente: o "+" entre eles precisa chegar
             // como separador, não como caractere literal (%2B), senão a busca falha.
-            const partes = [`intitle:${encodeURIComponent(titulo)}`];
+            const partes = [`intitle:${encodeURIComponent(tituloLimpo)}`];
             if (autor && autor !== 'Desconhecido') partes.push(`inauthor:${encodeURIComponent(autor)}`);
 
             try {
-                const url = `https://www.googleapis.com/books/v1/volumes?q=${partes.join('+')}&maxResults=5`;
+                const chave = GOOGLE_BOOKS_API_KEY ? `&key=${GOOGLE_BOOKS_API_KEY}` : '';
+                const url = `https://www.googleapis.com/books/v1/volumes?q=${partes.join('+')}&maxResults=5${chave}`;
                 const res = await fetchWithTimeout(url, 8000);
                 if (!res.ok) { console.warn('Google Books indisponível:', res.status); return null; }
                 const data = await res.json();

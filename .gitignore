@@ -69,3 +69,12 @@ node_modules/
 
 # dataconnect generated files
 .dataconnect
+
+# Artefatos de sessão do playwright-cli (snapshots, screenshots, logs temporários)
+.playwright-cli/
+test-results/
+playwright-report/
+
+# Chave da Google Books API — nunca deve entrar no histórico do Git,
+# mesmo restrita, é enviada direto no deploy do Firebase (ver README/CLAUDE.md)
+public/google-books-key.js
