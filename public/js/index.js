@@ -83,84 +83,6 @@
             }
         };
 
-        // Baixa a capa do Google Books e converte pra base64 (mesmo formato do upload)
-        async function capaParaBase64(url) {
-            try {
-                const res = await fetchWithTimeout(url, 8000);
-                const blob = await res.blob();
-                return await new Promise((resolve) => {
-                    const fr = new FileReader();
-                    fr.onloadend = () => resolve(fr.result);
-                    fr.onerror = () => resolve('');
-                    fr.readAsDataURL(blob);
-                });
-            } catch (_) { return ''; }
-        }
-
-        // Preenche os campos vazios do formulário com o que veio do Google Books
-        window.completarDadosDoLivro = async (btn) => {
-            const titEl = document.getElementById('bookTitleInput');
-            const autEl = document.getElementById('bookAuthorInput');
-            const descEl = document.getElementById('bookDescriptionInput');
-            if (!titEl.value.trim()) { showToast('Preencha o título primeiro.', 'info'); return; }
-
-            const textoOriginal = btn ? btn.innerHTML : '';
-            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Buscando...'; }
-
-            const info = await buscarInfoGoogleBooks(titEl.value.trim(), autEl.value.trim());
-
-            if (btn) { btn.disabled = false; btn.innerHTML = textoOriginal; }
-            if (!info) { showToast('Nada encontrado para esse título.', 'info'); return; }
-
-            let achou = [];
-            if (info.description && !descEl.value.trim()) { descEl.value = info.description; achou.push('sinopse'); }
-            if (info.author && (!autEl.value.trim() || autEl.value === 'Desconhecido')) { autEl.value = info.author; achou.push('autor'); }
-            if (info.cover && !currentCoverBase64) {
-                const b64 = await capaParaBase64(info.cover);
-                if (b64) { currentCoverBase64 = b64; achou.push('capa'); }
-            }
-            // Guarda os extras pra salvar junto no Firestore
-            window.currentExtraInfo = {
-                publishedDate: info.publishedDate,
-                pageCount: info.pageCount,
-                categories: info.categories,
-            };
-
-            showToast(achou.length ? `Encontramos: ${achou.join(', ')}.` : 'Os dados já estavam completos.', 'success');
-        };
-
-        // Versão silenciosa, disparada ao escolher o arquivo: só preenche buracos,
-        // sem avisar nada se não achar (o usuário ainda pode preencher na mão).
-        async function completarDadosAutomaticamente() {
-            const titEl = document.getElementById('bookTitleInput');
-            const autEl = document.getElementById('bookAuthorInput');
-            const descEl = document.getElementById('bookDescriptionInput');
-            if (!titEl.value.trim()) return;
-
-            const faltaAlgo = !descEl.value.trim() || !autEl.value.trim() || !currentCoverBase64;
-            if (!faltaAlgo) return;
-
-            const status = document.getElementById('epubFileStatus');
-            const statusAntes = status.textContent;
-            status.textContent = 'Buscando informações do livro...';
-
-            const info = await buscarInfoGoogleBooks(titEl.value.trim(), autEl.value.trim());
-            status.textContent = statusAntes;
-            if (!info) return;
-
-            if (info.description && !descEl.value.trim()) descEl.value = info.description;
-            if (info.author && !autEl.value.trim()) autEl.value = info.author;
-            if (info.cover && !currentCoverBase64) {
-                const b64 = await capaParaBase64(info.cover);
-                if (b64) currentCoverBase64 = b64;
-            }
-            window.currentExtraInfo = {
-                publishedDate: info.publishedDate,
-                pageCount: info.pageCount,
-                categories: info.categories,
-            };
-        }
-
         // ─── TOAST / CONFIRM (substitui alert/confirm nativos) ──────────────────────
         window.showToast = (message, type = 'error', duration = 4000) => {
             const container = document.getElementById('toastContainer');
@@ -226,7 +148,6 @@
             document.getElementById('bookForm').reset();
             currentEpubArrayBuffer = null;
             currentCoverBase64 = null;
-            window.currentExtraInfo = null; // não deixa dados de um livro vazarem pro próximo
             document.getElementById('epubFileStatus').textContent = "Clique para selecionar arquivo .epub";
         };
 
@@ -711,7 +632,6 @@ function updateHero(book, emLeitura = false) {
                 const { data: urlData } = supabase.storage.from('biblioteca').getPublicUrl(storagePath);
 
                 // 4. Salva no Firestore
-                const extras = window.currentExtraInfo || {};
                 await addDoc(collection(db, "books"), {
                     userId: user.id,
                     title, author,
@@ -720,12 +640,8 @@ function updateHero(book, emLeitura = false) {
                     storagePath: storagePath,
                     cover: optimizedCover,
                     fileType: fileExt,
-                    publishedDate: extras.publishedDate || '',
-                    pageCount: extras.pageCount || null,
-                    categories: extras.categories || [],
                     timestamp: Date.now()
                 });
-                window.currentExtraInfo = null;
 
                 closeModal();
                 renderList();
@@ -774,17 +690,13 @@ function updateHero(book, emLeitura = false) {
             }
             document.getElementById('epubFileStatus').textContent = "EPUB Pronto!";
         } else if (fileExt === 'pdf') {
-            // PDF não traz metadados: título vem do nome do arquivo e o resto
-            // tentamos completar pelo Google Books logo abaixo.
+            // PDF não traz metadados: título vem do nome do arquivo, resto é preenchido na mão
             document.getElementById('bookTitleInput').value = file.name.replace(/\.pdf$/i, '');
-            document.getElementById('bookAuthorInput').value = "";
+            document.getElementById('bookAuthorInput').value = "Desconhecido";
             document.getElementById('bookDescriptionInput').value = "";
             currentCoverBase64 = "";
             document.getElementById('epubFileStatus').textContent = "PDF Pronto! (Preencha os dados)";
         }
-
-        // Completa sozinho o que ficou faltando (sinopse, capa, autor)
-        await completarDadosAutomaticamente();
     };
     reader.readAsArrayBuffer(file);
     };

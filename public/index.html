@@ -227,11 +227,7 @@
                 <input type="text" id="bookTitleInput" class="form-input" placeholder="Título *" required>
                 <input type="text" id="bookAuthorInput" class="form-input" placeholder="Autor *" required>
                 <textarea id="bookDescriptionInput" class="form-textarea" placeholder="Descrição" rows="4"></textarea>
-                <button type="button" id="fetchInfoBtn" onclick="completarDadosDoLivro(this)"
-                        style="width:100%; background:#2d2d2d; color:#ccc; border:1px solid #444; padding:10px; border-radius:5px; cursor:pointer; margin-bottom:15px; font-size:0.9rem;">
-                    <i class="fa-brands fa-google"></i> Completar informações automaticamente
-                </button>
-                <div style="display:flex; justify-content:flex-end; gap:10px;">
+                <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:15px;">
                     <button type="button" onclick="closeModal()" style="background:#444;color:white;padding:10px;border-radius:5px;border:none;cursor:pointer;">Cancelar</button>
                     <button type="submit" id="submitBookBtn" style="background:var(--primary-red);color:white;padding:10px 20px;border-radius:5px;border:none;font-weight:bold;cursor:pointer;">Adicionar</button>
                 </div>
