@@ -232,50 +232,118 @@
         #librarySection h2 { font-size: 1.5rem; font-weight: 700; margin-bottom: 20px; border-left: 4px solid var(--primary-red); padding-left: 10px; }
         #bookList { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 25px; justify-content: center; }
 
-        /* --- CARDS --- */
+        /* --- CARDS --- Capa em cima, título e progresso embaixo (estilo Apple Books) */
         .book-card-modern {
-            position: relative; height: 280px;
-            background-size: cover; background-position: center;
-            border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.7);
-            overflow: hidden; transition: transform 0.3s, box-shadow 0.3s;
+            position: relative;
+            transition: transform 0.3s, box-shadow 0.3s;
         }
-        .book-card-modern:hover { transform: translateY(-5px) scale(1.02); box-shadow: 0 8px 20px rgba(229,9,20,0.7); }
+        .book-cover {
+            position: relative;
+            width: 100%; aspect-ratio: 2 / 3;
+            background-color: #2a2a2a;
+            background-size: cover; background-position: center;
+            border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.7);
+            overflow: hidden;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .book-card-modern:hover .book-cover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 10px 24px rgba(229,9,20,0.55);
+        }
+        .book-meta { padding: 10px 4px 0; text-align: center; }
+        .book-title {
+            font-size: 0.95rem; font-weight: 600; line-height: 1.25;
+            margin: 0 0 3px; color: var(--text-color);
+            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .book-author, .book-progress {
+            font-size: 0.8rem; margin: 0; color: var(--light-text);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .book-progress { color: #888; }
+
+        /* Barra fina de progresso na base da capa */
+        .cover-progress {
+            position: absolute; bottom: 0; left: 0;
+            width: 100%; height: 4px; z-index: 20;
+            background: rgba(0,0,0,0.45);
+        }
+        .cover-progress-fill {
+            height: 100%; background: var(--primary-red);
+            box-shadow: 0 0 8px var(--primary-red);
+            transition: width 0.3s ease;
+        }
+
+        /* Ações sobre a capa: aparecem no hover no desktop, sempre visíveis no toque */
+        .cover-actions {
+            position: absolute; inset: auto 0 0 0;
+            display: flex; gap: 6px; padding: 10px;
+            background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.75) 55%, rgba(0,0,0,0) 100%);
+            opacity: 0; transition: opacity 0.22s ease;
+        }
+        @media (hover: hover) {
+            .book-card-modern:hover .cover-actions { opacity: 1; }
+        }
+        @media (hover: none) {
+            .cover-actions { opacity: 1; }
+        }
 
         /* --- REORDENAR ARRASTANDO --- */
+
+        /* Card "levantado" da estante: cresce, inclina de leve e ganha sombra funda,
+           como se estivesse sendo segurado acima dos outros. */
         .book-card-modern.dragging {
-            opacity: 0.4;
-            transform: scale(0.97);
-            box-shadow: 0 0 0 2px var(--primary-red);
+            transform: scale(1.06) rotate(-2deg);
+            opacity: 0.92;
+            z-index: 40;
+            cursor: grabbing;
+            transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.3, 1), opacity 0.2s ease;
         }
-        /* Segurar pra arrastar (toque): dá um "chacoalhão" avisando que soltou do lugar */
+        .book-card-modern.dragging .book-cover {
+            box-shadow: 0 18px 40px rgba(0,0,0,0.85), 0 0 0 2px var(--primary-red);
+        }
+
+        /* Segurar pra arrastar (toque): "respira" avisando que já pode arrastar */
         .book-card-modern.drag-ready {
-            transform: scale(1.04);
-            box-shadow: 0 10px 28px rgba(229,9,20,0.6);
+            animation: cardPickup 0.35s cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
             z-index: 30;
         }
-        #bookList.is-reordering .book-card-modern { transition: transform 0.18s ease; }
-        #bookList.is-reordering .book-card-modern:hover { transform: none; box-shadow: 0 5px 15px rgba(0,0,0,0.7); }
-        /* Gradiente reforçado: garante contraste do texto mesmo sobre capas claras
-           ou cheias de texto. A base fica quase opaca e sobe suavemente. */
-        .card-overlay {
-            position: absolute; inset: 0;
-            background: linear-gradient(to top,
-                rgba(0,0,0,0.97) 0%,
-                rgba(0,0,0,0.92) 30%,
-                rgba(0,0,0,0.75) 52%,
-                rgba(0,0,0,0.35) 72%,
-                rgba(0,0,0,0) 100%);
-            display: flex; flex-direction: column; justify-content: flex-end; padding: 15px;
+        .book-card-modern.drag-ready .book-cover {
+            box-shadow: 0 14px 32px rgba(229,9,20,0.5);
         }
-        .card-title {
-            font-size: 1.1rem; font-weight: 700; line-height: 1.2; margin-bottom: 2px;
-            text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+        @keyframes cardPickup {
+            0%   { transform: scale(1); }
+            60%  { transform: scale(1.09); }
+            100% { transform: scale(1.06); }
         }
-        .card-author {
-            font-size: 0.85rem; color: var(--light-text); margin-bottom: 12px;
-            text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+
+        /* Vaga aberta onde o card vai cair */
+        #bookList.is-reordering .book-card-modern:not(.dragging) {
+            opacity: 0.75;
+            transition: transform 0.26s cubic-bezier(0.2, 0.8, 0.3, 1), opacity 0.2s ease;
         }
-        .card-actions { display: flex; gap: 8px; }
+        /* Durante o arrasto o hover atrapalha (dois efeitos brigando) */
+        #bookList.is-reordering .book-card-modern:hover .book-cover {
+            transform: none;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.7);
+        }
+        #bookList.is-reordering .cover-actions { opacity: 0; }
+        /* Assentando de volta na estante ao soltar */
+        .book-card-modern.dropping {
+            animation: cardDrop 0.28s cubic-bezier(0.2, 0.9, 0.3, 1);
+        }
+        @keyframes cardDrop {
+            0%   { transform: scale(1.06) rotate(-2deg); }
+            55%  { transform: scale(0.98) rotate(0deg); }
+            100% { transform: scale(1) rotate(0deg); }
+        }
+        /* Quem prefere menos movimento na tela */
+        @media (prefers-reduced-motion: reduce) {
+            .book-card-modern.dragging,
+            .book-card-modern.drag-ready,
+            .book-card-modern.dropping { animation: none; transition: none; }
+        }
         .read-btn { flex-grow: 1; display: flex; justify-content: center; align-items: center; background-color: var(--primary-red); color: var(--text-color); padding: 8px 5px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem; }
         .info-btn, .remove-btn { background-color: rgba(255,255,255,0.1); color: var(--text-color); padding: 8px; border: none; border-radius: 6px; cursor: pointer; width: 35px; }
         .offline-badge {
@@ -410,7 +478,8 @@
             #searchContainer, #addBookBtn, #logoutBtn, #adminPanelBtn { display: none !important; }
             .icon-btn { display: block; }
             .welcome-message { display: none; }
-            #bookList { grid-template-columns: repeat(2, 1fr); gap: 15px; }
-            .book-card-modern { height: 220px; }
+            #bookList { grid-template-columns: repeat(2, 1fr); gap: 20px 15px; }
+            .book-title { font-size: 0.85rem; }
+            .book-author, .book-progress { font-size: 0.72rem; }
             .hero-content h2 { font-size: 1.8rem; }
         }

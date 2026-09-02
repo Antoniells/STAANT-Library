@@ -724,6 +724,7 @@ function navigate(direction) {
                 const text  = sel.toString().trim();
                 currentSelection = { cfi, text };
                 btn.classList.add('enabled');
+                showChrome(); // traz o cabeçalho de volta: é lá que fica o botão de marcar
                 const hls = getHighlights();
                 // Comparação por texto EXATO (não substring): evita marcar "já existe" ou
                 // remover o destaque errado só porque um trecho novo contém palavras de outro.

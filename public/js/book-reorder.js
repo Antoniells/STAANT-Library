@@ -45,6 +45,42 @@ export function enableReordering(container, onReorder) {
         return el ? el.closest('.book-card-modern') : null;
     }
 
+    // ─── FLIP ─── Sem isso, mover um card faz os vizinhos "pularem" de posição.
+    // A ideia: mede onde cada um estava, reordena, e anima do lugar antigo pro novo.
+    function moverComAnimacao(reordenar) {
+        const cards = [...container.querySelectorAll('.book-card-modern')];
+        const antes = new Map(cards.map(el => [el, el.getBoundingClientRect()]));
+
+        reordenar();
+
+        cards.forEach(el => {
+            if (el === card) return; // o card na mão segue o cursor, não desliza
+            const a = antes.get(el);
+            const d = el.getBoundingClientRect();
+            const dx = a.left - d.left;
+            const dy = a.top - d.top;
+            if (!dx && !dy) return;
+
+            // Volta pro lugar antigo sem transição...
+            el.style.transition = 'none';
+            el.style.transform = `translate(${dx}px, ${dy}px)`;
+
+            // ...e no quadro seguinte solta pro lugar novo, agora animando
+            requestAnimationFrame(() => {
+                el.style.transition = 'transform 0.26s cubic-bezier(0.2, 0.8, 0.3, 1)';
+                el.style.transform = '';
+            });
+        });
+    }
+
+    // Tira os resíduos de estilo que o FLIP deixou nos cards
+    function limparEstilosFlip() {
+        container.querySelectorAll('.book-card-modern').forEach(el => {
+            el.style.transition = '';
+            el.style.transform = '';
+        });
+    }
+
     function comecarArrasto() {
         if (!card) return;
         arrastando = true;
@@ -104,17 +140,31 @@ export function enableReordering(container, onReorder) {
         const alvo = cardFromPoint(e.clientX, e.clientY);
         if (!alvo || alvo === card || !container.contains(alvo)) return;
 
-        // Insere antes ou depois conforme o lado em que o cursor entrou no card
+        // Insere antes ou depois conforme o lado em que o cursor entrou no card.
+        // Só reage depois de passar do meio dele, senão fica trocando sem parar
+        // quando o cursor para bem na fronteira entre dois cards.
         const r = alvo.getBoundingClientRect();
         const depois = (e.clientX - r.left) > r.width / 2;
-        container.insertBefore(card, depois ? alvo.nextSibling : alvo);
+        const destino = depois ? alvo.nextSibling : alvo;
+
+        // Já está nessa posição? Não mexe (evita animar à toa).
+        if (destino === card || card.nextSibling === destino) return;
+
+        moverComAnimacao(() => container.insertBefore(card, destino));
     });
 
     function finalizar(e) {
         if (!card || (pointerId !== null && e.pointerId !== pointerId)) return;
         const estavaArrastando = arrastando;
+        const solto = card;
         limpar();
+
         if (estavaArrastando) {
+            limparEstilosFlip();
+            // Assenta o card de volta na estante
+            solto.classList.add('dropping');
+            solto.addEventListener('animationend', () => solto.classList.remove('dropping'), { once: true });
+
             const ids = [...container.querySelectorAll('.book-card-modern')]
                 .map(el => el.dataset.bookId)
                 .filter(Boolean);
