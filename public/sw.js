@@ -1,7 +1,7 @@
 // Service Worker do STAANT — cache-first pro "esqueleto" do app (HTML/CSS/JS/CDNs),
 // pra abrir instantâneo mesmo sem rede. Os arquivos pesados dos livros NÃO passam por
 // aqui: ficam no IndexedDB (offline-books.js), baixados só quando o usuário pede.
-const CACHE_NAME = 'staant-shell-v7';
+const CACHE_NAME = 'staant-shell-v8';
 
 const SHELL_ASSETS = [
     './',
@@ -52,13 +52,23 @@ self.addEventListener('activate', (event) => {
     );
 });
 
-// Nunca cachear: Firestore, Storage do Supabase e o proxy de descoberta — precisam
-// estar sempre frescos (dados dinâmicos, não fazem parte do "esqueleto" do app).
+// Nunca cachear: Firestore, Storage do Supabase, o proxy de descoberta (dados
+// dinâmicos) e os CDNs de terceiros (Font Awesome, Google Fonts, jsDelivr, Tailwind,
+// gstatic). Guardar CDN cross-origin no Cache API é arriscado: se uma resposta chegar
+// "opaca" (sem CORS) uma vez — rede instável, extensão do usuário, etc. — ela fica
+// travada nesse estado pra sempre, quebrando os ícones. O HTTP cache nativo do
+// navegador já deixa essas visitas seguintes rápidas, sem esse risco.
 function isNeverCache(url) {
     return url.hostname.includes('firestore.googleapis.com')
         || url.hostname.includes('googleapis.com')
         || url.hostname.includes('supabase.co')
-        || url.hostname.includes('staant-proxy.vercel.app');
+        || url.hostname.includes('staant-proxy.vercel.app')
+        || url.hostname.includes('cdnjs.cloudflare.com')
+        || url.hostname.includes('cdn.jsdelivr.net')
+        || url.hostname.includes('cdn.tailwindcss.com')
+        || url.hostname.includes('fonts.googleapis.com')
+        || url.hostname.includes('fonts.gstatic.com')
+        || url.hostname.includes('gstatic.com');
 }
 
 self.addEventListener('fetch', (event) => {
