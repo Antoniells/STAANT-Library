@@ -58,6 +58,11 @@
             <span>Painel de Controle</span>
         </button>
         
+        <button id="installAppBtn" class="sidebar-btn" style="display: none; color: #22c55e;">
+            <i class="fa-solid fa-mobile-screen-button"></i>
+            <span>Instalar Aplicativo</span>
+        </button>
+        
         <!-- NOVO: Botão Início -->
         <button class="sidebar-btn" onclick="switchView('home')">
             <i class="fa-solid fa-house"></i>
@@ -85,7 +90,7 @@
             <span>Sair da Conta</span>
         </button>
 
-        <div class="sidebar-footer">STAANT v1.2.5</div>
+        <div class="sidebar-footer">STAANT v1.2.6</div>
     </div>
 
     <!-- MODAL CONFIGURAÇÕES -->
@@ -200,7 +205,7 @@
         <h2 id="collectionTitle" style="font-size: 1.5rem; font-weight: 700; margin-bottom: 20px; border-left: 4px solid var(--primary-red); padding-left: 10px;">Sua Estante</h2>
         <div id="bookList"></div>
 
-        <!-- Resultados da busca nas bibliotecas externas (Google Books/Internet Archive/Gutenberg) -->
+<!-- Resultados da busca nas bibliotecas externas (Google Books/Internet Archive/Gutenberg) -->
         <div id="externalResultsSection" style="display:none; margin-top: 40px;">
             <h2 style="font-size: 1.3rem; font-weight: 700; margin-bottom: 20px; border-left: 4px solid var(--primary-red); padding-left: 10px;">Encontrados em outras bibliotecas</h2>
             <div id="externalLoading" style="display:none; text-align:center; color: #888; padding: 20px;">
@@ -209,6 +214,13 @@
             </div>
             <div id="externalResults" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px;">
                 <!-- Os livros aparecerão aqui -->
+            </div>
+            
+            <!-- NOVO: Botão Carregar Mais -->
+            <div id="externalLoadMoreContainer" style="display:none; text-align:center; margin: 30px 0 50px 0;">
+                <button id="externalLoadMoreBtn" style="background:#242424; color:#fff; border:1px solid #3d3d3d; padding:12px 28px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:0.9rem; transition: background 0.2s;">
+                    <i class="fa-solid fa-plus" style="margin-right:8px;"></i> Carregar mais livros
+                </button>
             </div>
         </div>
     </div>
@@ -249,6 +261,14 @@
             </div>
             <div id="descDescription" class="desc-text-content"></div>
         </div>
+    </div>
+    <!-- NOVO: Aviso de Instalação para iOS -->
+    <div id="iosInstallPrompt" style="display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 380px; background: rgba(31, 31, 31, 0.95); backdrop-filter: blur(10px); border: 1px solid #333; border-radius: 16px; padding: 16px 20px; z-index: 10000; box-shadow: 0 10px 30px rgba(0,0,0,0.7); align-items: center; gap: 15px;">
+        <div style="flex-grow: 1;">
+            <p style="margin: 0 0 6px; font-weight: bold; font-size: 0.95rem; color: #fff;">Instale o STAANT</p>
+            <p style="margin: 0; font-size: 0.8rem; color: #ccc; line-height: 1.4;">Toque em <i class="fa-solid fa-arrow-up-from-bracket" style="color: #3b82f6; margin: 0 2px;"></i> <b>Compartilhar</b> na barra inferior do Safari e depois em <b>Adicionar à Tela de Início</b>.</p>
+        </div>
+        <button onclick="closeIosPrompt()" style="background: rgba(255,255,255,0.1); border: none; color: #fff; width: 30px; height: 30px; border-radius: 50%; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;" aria-label="Fechar aviso">&times;</button>
     </div>
 
     <div id="toastContainer"></div>

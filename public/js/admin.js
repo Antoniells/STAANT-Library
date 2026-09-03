@@ -78,13 +78,51 @@
         }
     });
 
-    // 2. Carregar Usuários e Estatísticas
+   // Utilitários de formatação
+    function formatBytes(bytes) {
+        if (bytes === 0) return '0 MB';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    function formatTimeAgo(timestamp) {
+        if (!timestamp) return 'Nunca';
+        const diff = Date.now() - timestamp;
+        const minutes = Math.floor(diff / 60000);
+        if (minutes < 60) return `Há ${minutes} min`;
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `Há ${hours} h`;
+        const days = Math.floor(hours / 24);
+        return `Há ${days} dias`;
+    }
+
+    // 2. Carregar Usuários e Estatísticas Inteligentes
     async function loadAdminData() {
-        if(tbody) tbody.innerHTML = '<tr><td colspan="3" class="text-center p-10 text-gray-500">Buscando dados seguros no Firebase...</td></tr>';
+        if(tbody) tbody.innerHTML = '<tr><td colspan="5" class="text-center p-10 text-gray-500"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Analisando dados...</td></tr>';
         
         try {
-            const qUsers = query(collection(db, "users"), orderBy("name"));
-            const usersSnapshot = await getDocs(qUsers);
+            // Busca usuários e livros em paralelo para ser muito mais rápido
+            const [usersSnapshot, booksSnapshot] = await Promise.all([
+                getDocs(query(collection(db, "users"), orderBy("name"))),
+                getDocs(collection(db, "books"))
+            ]);
+
+            // Dicionários de Agregação
+            const userBooksCount = {};
+            let totalStorageBytes = 0;
+
+            booksSnapshot.forEach(doc => {
+                const b = doc.data();
+                userBooksCount[b.userId] = (userBooksCount[b.userId] || 0) + 1;
+                // Se for um livro antigo (sem fileSize), estima em ~1.5MB
+                totalStorageBytes += (b.fileSize || 1500000); 
+            });
+
+            // Atualiza os Cards Superiores
+            if (document.getElementById('totalBooks')) document.getElementById('totalBooks').textContent = booksSnapshot.size;
+            if (document.getElementById('totalStorage')) document.getElementById('totalStorage').textContent = formatBytes(totalStorageBytes);
             
             let userCount = 0;
             if(tbody) tbody.innerHTML = '';
@@ -93,20 +131,25 @@
                 const user = docSnap.data();
                 userCount++;
                 
-                // Oculta o próprio admin da lista de exclusão para evitar auto-exclusão
+                // Oculta o próprio admin para não se excluir sem querer
                 if (user.uid === auth.currentUser.uid) return; 
+
+                const booksCount = userBooksCount[user.uid] || 0;
+                const lastAccess = formatTimeAgo(user.lastLogin);
 
                 if(tbody) {
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
                         <td data-label="Nome" class="font-semibold text-gray-200">${user.name}</td>
                         <td data-label="E-mail" class="text-gray-400 font-mono text-sm email-cell">${user.email}</td>
+                        <td data-label="Livros" class="text-blue-400 font-bold">${booksCount}<i class="fa-solid fa-book text-xs ml-1.5 opacity-80"></i></td>
+                        <td data-label="Último Acesso" class="text-gray-400 text-sm">${lastAccess}</td>
                         <td data-label="Ações">
-                            <div class="flex gap-6 sm:gap-4 justify-end sm:justify-start">
-                                <button onclick="window.editUser('${user.uid}', '${user.name}')" class="text-blue-400 hover:text-blue-300 transition" aria-label="Editar ${user.name}" title="Editar">
+                            <div class="flex gap-4 justify-end sm:justify-start">
+                                <button onclick="window.editUser('${user.uid}', '${user.name}')" class="text-blue-400 hover:text-blue-300 transition" title="Editar Nome">
                                     <i class="fa-solid fa-pen-to-square"></i>
                                 </button>
-                                <button onclick="window.deleteUser('${user.uid}', '${user.name}')" class="text-red-500 hover:text-red-400 transition" aria-label="Excluir ${user.name}" title="Excluir">
+                                <button onclick="window.deleteUser('${user.uid}', '${user.name}')" class="text-red-500 hover:text-red-400 transition" title="Excluir Usuário">
                                     <i class="fa-solid fa-trash-can"></i>
                                 </button>
                             </div>
@@ -116,20 +159,16 @@
                 }
             });
 
-            // Atualiza contadores
-            const totalUsersEl = document.getElementById('totalUsers');
-            if (totalUsersEl) totalUsersEl.textContent = userCount;
-            if (userCount === 0 && noUsersMsg) noUsersMsg.classList.remove('hidden');
-
-            // Contagem Global de Livros
-            const booksSnapshot = await getDocs(collection(db, "books"));
-            const totalBooksEl = document.getElementById('totalBooks');
-            if (totalBooksEl) totalBooksEl.textContent = booksSnapshot.size;
+            if (document.getElementById('totalUsers')) document.getElementById('totalUsers').textContent = userCount;
+            if (userCount === 1 && noUsersMsg) { // Se for só o admin
+                noUsersMsg.classList.remove('hidden');
+            } else if (noUsersMsg) {
+                noUsersMsg.classList.add('hidden');
+            }
 
         } catch (error) {
             console.error("Erro Admin Firestore:", error);
-            // Se as Regras de Segurança bloquearem a leitura, vai cair aqui
-            if(tbody) tbody.innerHTML = '<tr><td colspan="3" class="text-center text-red-500 p-10">Permissão Negada pelo Servidor.</td></tr>';
+            if(tbody) tbody.innerHTML = '<tr><td colspan="5" class="text-center text-red-500 p-10">Permissão Negada pelo Servidor. (Verifique as regras do Firestore)</td></tr>';
         }
     }
 

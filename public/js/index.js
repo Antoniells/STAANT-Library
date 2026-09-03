@@ -590,7 +590,7 @@ function updateHero(book, emLeitura = false) {
                     canvas.height = img.height * scaleSize;
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    resolve(canvas.toDataURL('image/jpeg', 0.4));
+                    resolve(canvas.toDataURL('image/webp', 0.7));
                 };
                 img.onerror = () => resolve("");
                 setTimeout(() => resolve(""), 5000);
@@ -649,6 +649,7 @@ function updateHero(book, emLeitura = false) {
                     storagePath: storagePath,
                     cover: optimizedCover,
                     fileType: fileExt,
+                    fileSize: fileBlob.size,
                     timestamp: Date.now()
                 });
 
@@ -736,29 +737,47 @@ function updateHero(book, emLeitura = false) {
         // ─── BUSCA NAS BIBLIOTECAS EXTERNAS (Google Books/Internet Archive/Gutenberg) ───
         let externalSearchDebounceTimer = null;
         let externalSearchToken = 0;
+        let currentExternalPage = 1;
+        let currentExternalQuery = '';
 
-        // Espera o usuário parar de digitar antes de gastar uma chamada de rede
         function scheduleExternalSearch(term) {
             clearTimeout(externalSearchDebounceTimer);
             const query = term.trim();
             if (query.length < 3) {
-                externalSearchToken++; // invalida qualquer busca em andamento
+                externalSearchToken++;
+                currentExternalQuery = '';
+                currentExternalPage = 1;
                 document.getElementById('externalResultsSection').style.display = 'none';
                 document.getElementById('externalResults').innerHTML = '';
+                document.getElementById('externalLoadMoreContainer').style.display = 'none';
                 return;
             }
-            externalSearchDebounceTimer = setTimeout(() => searchExternalLibraries(query), 500);
+            // Ao alterar o texto, sempre recomeça da página 1
+            externalSearchDebounceTimer = setTimeout(() => {
+                currentExternalPage = 1;
+                currentExternalQuery = query;
+                searchExternalLibraries(query, 1);
+            }, 500);
         }
 
-        async function searchExternalLibraries(query) {
+        async function searchExternalLibraries(query, page = 1) {
             const myToken = ++externalSearchToken;
             const section = document.getElementById('externalResultsSection');
             const resultsContainer = document.getElementById('externalResults');
             const loading = document.getElementById('externalLoading');
+            const loadMoreContainer = document.getElementById('externalLoadMoreContainer');
+            const loadMoreBtn = document.getElementById('externalLoadMoreBtn');
 
             section.style.display = 'block';
-            resultsContainer.innerHTML = '';
-            loading.style.display = 'block';
+
+            if (page === 1) {
+                resultsContainer.innerHTML = '';
+                loadMoreContainer.style.display = 'none';
+                loading.style.display = 'block';
+            } else {
+                loadMoreBtn.disabled = true;
+                loadMoreBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Carregando...';
+            }
 
             if (!navigator.onLine) {
                 loading.style.display = 'none';
@@ -767,25 +786,26 @@ function updateHero(book, emLeitura = false) {
             }
 
             try {
-                const urlVercel = `https://staant-proxy.vercel.app/api/search?q=${encodeURIComponent(query)}`;
+                const urlVercel = `https://staant-proxy.vercel.app/api/search?q=${encodeURIComponent(query)}&page=${page}`;
                 const response = await fetchWithTimeout(urlVercel);
                 const data = await response.json();
-                if (myToken !== externalSearchToken) return; // uma busca mais nova já está em andamento
+
+                if (myToken !== externalSearchToken) return;
                 loading.style.display = 'none';
 
-                if (!data.results || data.results.length === 0) {
+                if (page === 1 && (!data.results || data.results.length === 0)) {
                     resultsContainer.innerHTML = '<p style="grid-column: 1/-1; text-align:center; color:#888;">Nenhum e-book gratuito encontrado em português.</p>';
+                    loadMoreContainer.style.display = 'none';
                     return;
                 }
 
+                // Renderiza os cards recebidos
                 data.results.forEach(book => {
                     const card = document.createElement('div');
                     card.style.cssText = `background: #2a2a2a; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; position: relative;`;
-
                     const safeTitle = book.title.replace(/'/g, "\\'").replace(/"/g, '&quot;');
                     const safeAuthor = book.author.replace(/'/g, "\\'").replace(/"/g, '&quot;');
 
-                    // Define a etiqueta com base na API de origem
                     let iconTag = '';
                     if (book.source === 'Google Books') {
                         iconTag = '<i class="fa-brands fa-google"></i> Books';
@@ -813,16 +833,38 @@ function updateHero(book, emLeitura = false) {
                     `;
                     resultsContainer.appendChild(card);
                 });
+
+                // Se vieram livros nesta rodada, exibimos o botão para carregar a próxima página
+                if (data.results && data.results.length >= 8) {
+                    loadMoreContainer.style.display = 'block';
+                    loadMoreBtn.disabled = false;
+                    loadMoreBtn.innerHTML = '<i class="fa-solid fa-plus" style="margin-right:8px;"></i> Carregar mais livros';
+                } else {
+                    loadMoreContainer.style.display = 'none';
+                }
+
             } catch (error) {
                 if (myToken !== externalSearchToken) return;
                 console.error("Erro na busca externa:", error);
                 loading.style.display = 'none';
+                loadMoreContainer.style.display = 'none';
                 const msg = error.name === 'AbortError'
                     ? 'A busca demorou demais para responder. Tente novamente.'
                     : 'Erro ao buscar livros.';
-                resultsContainer.innerHTML = `<p style="grid-column: 1/-1; text-align:center; color:#ff4d4d;">${msg}</p>`;
+                if (page === 1) {
+                    resultsContainer.innerHTML = `<p style="grid-column: 1/-1; text-align:center; color:#ff4d4d;">${msg}</p>`;
+                } else {
+                    showToast(msg, "error");
+                }
             }
         }
+
+        // Configura o clique no botão "Carregar mais"
+        document.getElementById('externalLoadMoreBtn').onclick = () => {
+            currentExternalPage++;
+            searchExternalLibraries(currentExternalQuery, currentExternalPage);
+        };
+
 
 // ─── GERADOR DE MÚLTIPLOS CARROSSÉIS (Corrigido e Unificado) ───
         window.carregarRecomendacoes = async (preferences) => {
@@ -997,6 +1039,7 @@ function updateHero(book, emLeitura = false) {
                     storagePath: storagePath,
                     cover: coverUrl || info?.cover || '',
                     fileType: 'epub',
+                    fileSize: blob.size,
                     publishedDate: info?.publishedDate || '',
                     pageCount: info?.pageCount || null,
                     categories: info?.categories || [],
@@ -1019,3 +1062,90 @@ function updateHero(book, emLeitura = false) {
                 showToast("🔒 Este livro possui proteção na biblioteca original. Use o botão azul 'Baixar Manualmente'.", "error", 6000);
             }
         };
+        // ─── INSTALAÇÃO DO PWA (Botão "Instalar Aplicativo") ───
+        
+        let deferredPrompt;
+        const installAppBtn = document.getElementById('installAppBtn');
+
+        // 1. O navegador avisa: "Ei, esse site pode ser instalado!"
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // Impede o banner padrão do Google Chrome de aparecer do nada
+            e.preventDefault();
+            // Guarda o evento para dispararmos quando o usuário clicar no botão
+            deferredPrompt = e;
+            
+            // Agora sim, revelamos o nosso botão verde na Sidebar
+            if (installAppBtn) installAppBtn.style.display = 'flex';
+        });
+
+        // 2. O usuário clica no nosso botão
+        if (installAppBtn) {
+            installAppBtn.addEventListener('click', async () => {
+                if (!deferredPrompt) return;
+                
+                // Fecha a sidebar para não ficar na frente
+                if (document.getElementById('sidebar').classList.contains('active')) {
+                    toggleSidebar();
+                }
+
+                // Dispara a caixinha nativa do celular (Aquele pop-up "Deseja instalar?")
+                deferredPrompt.prompt();
+                
+                // Espera a resposta do usuário (Aceitou ou Recusou?)
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    console.log('Usuário aceitou a instalação do STAANT.');
+                    installAppBtn.style.display = 'none'; // Esconde o botão
+                } else {
+                    console.log('Usuário recusou a instalação.');
+                }
+                
+                // O evento só pode ser usado uma vez, então limpamos
+                deferredPrompt = null;
+            });
+        }
+
+        // 3. Limpeza: Se o app já foi instalado com sucesso, o botão some para sempre
+        window.addEventListener('appinstalled', () => {
+            if (installAppBtn) installAppBtn.style.display = 'none';
+            showToast("STAANT foi instalado com sucesso!", "success");
+        });
+
+        // ─── AVISO DE INSTALAÇÃO PARA iOS (Safari) ───
+        function checkIosInstallPrompt() {
+            const userAgent = window.navigator.userAgent.toLowerCase();
+            const isIos = /iphone|ipad|ipod/.test(userAgent);
+            
+            // A Apple tem uma propriedade secreta para saber se o PWA está aberto na tela inicial
+            const isStandalone = ('standalone' in window.navigator) && window.navigator.standalone;
+            
+            // Verifica se o usuário já dispensou esse aviso antes
+            const promptClosed = localStorage.getItem('staant_ios_prompt_closed');
+
+            if (isIos && !isStandalone && !promptClosed) {
+                const iosPrompt = document.getElementById('iosInstallPrompt');
+                if (iosPrompt) {
+                    // Espera 3 segundos após o site carregar para não ser agressivo
+                    setTimeout(() => {
+                        iosPrompt.style.display = 'flex';
+                        // Uma animação suave subindo da base da tela
+                        iosPrompt.animate([
+                            { transform: 'translate(-50%, 100px)', opacity: 0 },
+                            { transform: 'translate(-50%, 0)', opacity: 1 }
+                        ], { duration: 400, easing: 'ease-out' });
+                    }, 3000);
+                }
+            }
+        }
+
+        window.closeIosPrompt = () => {
+            const iosPrompt = document.getElementById('iosInstallPrompt');
+            if (iosPrompt) {
+                iosPrompt.style.display = 'none';
+                // Salva no navegador para nunca mais incomodar o usuário
+                localStorage.setItem('staant_ios_prompt_closed', 'true');
+            }
+        };
+
+        // Roda a checagem sempre que a Home carregar
+        checkIosInstallPrompt();

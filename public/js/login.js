@@ -9,7 +9,8 @@
         import { 
             doc, 
             getDoc, 
-            setDoc 
+            setDoc, 
+            updateDoc
         } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const loginForm = document.getElementById('loginForm');
@@ -39,25 +40,27 @@
 
         // Função universal para salvar sessão
 // Função universal para salvar sessão
-        async function salvarSessaoERedirecionar(user) {
+async function salvarSessaoERedirecionar(user) {
             try {
                 let role = "user";
                 let name = user.displayName || user.email.split('@')[0];
-                
-                const userDoc = await getDoc(doc(db, "users", user.uid));
-                
+                const userRef = doc(db, "users", user.uid);
+                const userDoc = await getDoc(userRef);
+
                 if (userDoc.exists()) {
-                    role = userDoc.data().role; 
+                    role = userDoc.data().role;
                     name = userDoc.data().name || name;
+                    // 🧠 NOVO: Atualiza a data do último acesso toda vez que logar!
+                    await updateDoc(userRef, { lastLogin: Date.now() });
                 } else {
-                    // SE FOR GOOGLE (Primeiro acesso): Cria o perfil já com gêneros curingas!
-                    await setDoc(doc(db, "users", user.uid), {
+                    await setDoc(userRef, {
                         uid: user.uid,
                         name: name,
                         email: user.email.toLowerCase().trim(),
                         role: "user",
-                        preferences: ['fiction', 'romance', 'adventure'], // <--- Injetando padrão aqui
-                        createdAt: new Date()
+                        preferences: ['fiction', 'romance', 'adventure'],
+                        createdAt: Date.now(),
+                        lastLogin: Date.now() // 🧠 NOVO: Grava no primeiro acesso
                     });
                 }
 
