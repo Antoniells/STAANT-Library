@@ -137,6 +137,22 @@ export function enableReordering(container, onReorder) {
         }
 
         e.preventDefault(); // segura a rolagem enquanto arrasta
+
+        // ─── Magnetic 3D Tilt ─── inclina o card conforme a posição do mouse
+        // em relação ao centro dele, dando sensação de peso/inércia.
+        const rect = card.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const dx = e.clientX - cx;
+        const dy = e.clientY - cy;
+        const MAX_TILT = 14; // graus
+        const rotY = Math.max(-MAX_TILT, Math.min(MAX_TILT, (dx / (rect.width / 2)) * MAX_TILT));
+        const rotX = Math.max(-MAX_TILT, Math.min(MAX_TILT, (-dy / (rect.height / 2)) * MAX_TILT));
+        card.style.transition = 'none'; // resposta instantânea durante o rastreio
+        card.style.transform = `scale(1.06) rotateX(${rotX}deg) rotateY(${rotY}deg)`;
+        card.style.setProperty('--glare-x', `${Math.min(100, Math.max(0, (dx / rect.width) * 100 + 50))}%`);
+        card.style.setProperty('--glare-y', `${Math.min(100, Math.max(0, (dy / rect.height) * 100 + 50))}%`);
+
         const alvo = cardFromPoint(e.clientX, e.clientY);
         if (!alvo || alvo === card || !container.contains(alvo)) return;
 

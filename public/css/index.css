@@ -293,6 +293,21 @@
 
         /* Card "levantado" da estante: cresce, inclina de leve e ganha sombra funda,
            como se estivesse sendo segurado acima dos outros. */
+
+        #bookList { perspective: 1000px; }
+
+.book-cover::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(circle at var(--glare-x, 50%) var(--glare-y, 50%), rgba(255,255,255,0.35), transparent 60%);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 25;
+    transition: opacity 0.25s ease;
+}
+.book-card-modern.dragging .book-cover::after {
+    opacity: 1;
+}
         .book-card-modern.dragging {
             transform: scale(1.06) rotate(-2deg);
             opacity: 0.92;
@@ -340,6 +355,7 @@
         }
         /* Quem prefere menos movimento na tela */
         @media (prefers-reduced-motion: reduce) {
+            .book-card-modern.dragging .book-cover::after { transition: none; opacity: 0; }
             .book-card-modern.dragging,
             .book-card-modern.drag-ready,
             .book-card-modern.dropping { animation: none; transition: none; }
