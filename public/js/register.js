@@ -62,7 +62,8 @@
                     email: email.toLowerCase().trim(),
                     role: "user",
                     preferences: Array.from(selectedGenres), // Salva como Array ex: ['fiction', 'adventure']
-                    createdAt: new Date()
+                    createdAt: Date.now(),
+                    lastLogin: Date.now()
                 });
 
                 await signOut(auth);

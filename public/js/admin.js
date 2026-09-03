@@ -146,10 +146,10 @@
                         <td data-label="Último Acesso" class="text-gray-400 text-sm">${lastAccess}</td>
                         <td data-label="Ações">
                             <div class="flex gap-4 justify-end sm:justify-start">
-                                <button onclick="window.editUser('${user.uid}', '${user.name}')" class="text-blue-400 hover:text-blue-300 transition" title="Editar Nome">
+                                <button onclick="window.editUser('${user.uid}', '${user.name}')" class="text-blue-400 hover:text-blue-300 transition" aria-label="Editar ${user.name}" title="Editar Nome">
                                     <i class="fa-solid fa-pen-to-square"></i>
                                 </button>
-                                <button onclick="window.deleteUser('${user.uid}', '${user.name}')" class="text-red-500 hover:text-red-400 transition" title="Excluir Usuário">
+                                <button onclick="window.deleteUser('${user.uid}', '${user.name}')" class="text-red-500 hover:text-red-400 transition" aria-label="Excluir ${user.name}" title="Excluir Usuário">
                                     <i class="fa-solid fa-trash-can"></i>
                                 </button>
                             </div>
