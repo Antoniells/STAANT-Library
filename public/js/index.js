@@ -428,7 +428,7 @@ function createCard(book, offlineIds) {
                     ${offlineBadgeHtml}
                     ${progressBarHtml}
                     <div class="cover-actions">
-                        <button class="read-btn" onclick="openReader('${book.epubUrl}', '${safeTitle}', '${book.id}')">Ler</button>
+                        <button class="read-btn" onclick="openReader('${book.epubUrl}', '${safeTitle}', '${book.id}', this.closest('.book-cover'))">Ler</button>
                         <button class="info-btn" onclick="showInfoById('${book.id}')" aria-label="Ver detalhes de ${safeTitle}" title="Detalhes"><i class="fa-solid fa-info"></i></button>
                         <button class="remove-btn" onclick="deleteBookCloud('${book.id}', '${book.storagePath}')" aria-label="Excluir ${safeTitle}" title="Excluir"><i class="fa-solid fa-trash"></i></button>
                     </div>
@@ -441,13 +441,57 @@ function createCard(book, offlineIds) {
             return div;
         }
 
-window.openReader = (url, title, id) => {
+window.openReader = (url, title, id, coverEl) => {
             localStorage.setItem('currentEpubUrl', url);
             if (title) localStorage.setItem('currentBookTitle', title); // O Leitor agora sabe o nome real!
             if (id) localStorage.setItem('currentBookId', id); else localStorage.removeItem('currentBookId');
             localStorage.setItem('staant_return_view', 'library');
-            window.location.href = 'reader.html';
+
+            // Começa a baixar o arquivo já no clique, em paralelo com a animação —
+            // quando o reader.html carregar, esse fetch tende a vir do cache HTTP
+            // em vez de esperar a rede de novo.
+            fetch(url, { mode: 'cors' }).catch(() => {});
+
+            const reduzMovimento = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            if (!coverEl || reduzMovimento) { window.location.href = 'reader.html'; return; }
+
+            playBookOpeningTransition(coverEl);
+            setTimeout(() => { window.location.href = 'reader.html'; }, 800);
         };
+
+        // ─── TRANSIÇÃO "ABRIR LIVRO" ── a capa clicada voa até o centro da tela e
+        // gira em 3D como uma capa dura se abrindo, com o fundo escurecendo junto.
+        function playBookOpeningTransition(coverEl) {
+            const rect = coverEl.getBoundingClientRect();
+
+            const overlay = document.createElement('div');
+            overlay.id = 'readTransitionOverlay';
+
+            const clone = document.createElement('div');
+            clone.className = 'read-transition-cover';
+            clone.style.backgroundImage = coverEl.style.backgroundImage;
+            clone.style.top = `${rect.top}px`;
+            clone.style.left = `${rect.left}px`;
+            clone.style.width = `${rect.width}px`;
+            clone.style.height = `${rect.height}px`;
+
+            overlay.appendChild(clone);
+            document.body.appendChild(overlay);
+            void clone.offsetWidth; // força o navegador a "fotografar" o estado inicial antes de mudar
+
+            requestAnimationFrame(() => {
+                overlay.classList.add('active');
+                const targetW = Math.min(320, window.innerWidth * 0.7);
+                const targetH = targetW * 1.5; // mesma proporção 2:3 da capa
+                clone.style.top = `${(window.innerHeight - targetH) / 2}px`;
+                clone.style.left = `${(window.innerWidth - targetW) / 2}px`;
+                clone.style.width = `${targetW}px`;
+                clone.style.height = `${targetH}px`;
+                clone.classList.add('opening');
+            });
+
+            setTimeout(() => overlay.remove(), 800);
+        }
 
         window.deleteBookCloud = async (id, path) => {
             const ok = await showConfirm("Excluir permanentemente da nuvem?");
