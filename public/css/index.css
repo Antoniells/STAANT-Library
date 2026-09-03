@@ -360,43 +360,6 @@
             .book-card-modern.drag-ready,
             .book-card-modern.dropping { animation: none; transition: none; }
         }
-        /* --- TRANSIÇÃO "ABRIR LIVRO" (clique em Ler) --- */
-        #readTransitionOverlay {
-            position: fixed; inset: 0;
-            background: rgba(0,0,0,0);
-            z-index: 99999;
-            perspective: 1600px;
-            pointer-events: auto; /* trava clique no fundo enquanto anima */
-            transition: background 0.8s ease;
-        }
-        #readTransitionOverlay.active {
-            background: rgba(0,0,0,0.92);
-        }
-        .read-transition-cover {
-            position: fixed;
-            background-size: cover; background-position: center;
-            background-color: #2a2a2a;
-            border-radius: 6px;
-            box-shadow: 0 30px 80px rgba(0,0,0,0.85);
-            transform-style: preserve-3d;
-            transform-origin: left center; /* lombada do livro fica na esquerda */
-            transform: rotateY(0deg);
-            z-index: 100000;
-            transition: top 0.8s cubic-bezier(0.65,0,0.35,1),
-                        left 0.8s cubic-bezier(0.65,0,0.35,1),
-                        width 0.8s cubic-bezier(0.65,0,0.35,1),
-                        height 0.8s cubic-bezier(0.65,0,0.35,1),
-                        transform 0.8s cubic-bezier(0.65,0,0.35,1),
-                        box-shadow 0.8s ease;
-        }
-        .read-transition-cover.opening {
-            transform: rotateY(-110deg);
-            box-shadow: 0 40px 120px rgba(0,0,0,0.95);
-        }
-        @media (prefers-reduced-motion: reduce) {
-            #readTransitionOverlay, .read-transition-cover { transition: none !important; }
-        }
-
         .read-btn { flex-grow: 1; display: flex; justify-content: center; align-items: center; background-color: var(--primary-red); color: var(--text-color); padding: 8px 5px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem; }
         .info-btn, .remove-btn { background-color: rgba(255,255,255,0.1); color: var(--text-color); padding: 8px; border: none; border-radius: 6px; cursor: pointer; width: 35px; }
         .offline-badge {
