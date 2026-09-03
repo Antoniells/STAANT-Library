@@ -5,6 +5,7 @@
         import { saveBookOffline, getOfflineBook, removeOfflineBook, listOfflineBookIds } from '../offline-books.js';
         import { minutesToday, currentStreak, totalMinutes, lastDays, formatMinutes } from '../reading-stats.js';
         import { applyOrder, saveOrder, enableReordering } from './book-reorder.js';
+        import { fuzzySearchBooks } from './fuzzy-search.js';
 
         let currentCoverBase64 = null;
         let currentEpubArrayBuffer = null;
@@ -301,7 +302,7 @@
         async function renderBooks(books, filter = '') {
             const bookList = document.getElementById('bookList');
             bookList.innerHTML = '';
-            const term = filter.toLowerCase();
+            const term = filter.trim();
             let firstBook = null;
             const offlineIds = await listOfflineBookIds().catch(() => new Set());
 
@@ -309,11 +310,13 @@
             const usuario = JSON.parse(localStorage.getItem('staant_user')) || {};
             const ordenados = usuario.id ? applyOrder(books, usuario.id) : books;
 
-            ordenados.forEach(book => {
-                if (!term || book.title.toLowerCase().includes(term) || book.author.toLowerCase().includes(term)) {
-                    if (!firstBook) firstBook = book;
-                    bookList.appendChild(createCard(book, offlineIds));
-                }
+            // Filtro tolera erros de digitação e ordena por relevância; sem
+            // termo, mantém a ordem da estante (a do drag-and-drop)
+            const exibidos = term ? fuzzySearchBooks(ordenados, term) : ordenados;
+
+            exibidos.forEach(book => {
+                if (!firstBook) firstBook = book;
+                bookList.appendChild(createCard(book, offlineIds));
             });
 
             // Arrastar pra reordenar só faz sentido na estante inteira, não num filtro

@@ -1,7 +1,7 @@
 // Service Worker do STAANT — cache-first pro "esqueleto" do app (HTML/CSS/JS/CDNs),
 // pra abrir instantâneo mesmo sem rede. Os arquivos pesados dos livros NÃO passam por
 // aqui: ficam no IndexedDB (offline-books.js), baixados só quando o usuário pede.
-const CACHE_NAME = 'staant-shell-v9';
+const CACHE_NAME = 'staant-shell-v10';
 
 const SHELL_ASSETS = [
     './',
@@ -28,6 +28,7 @@ const SHELL_ASSETS = [
     './css/404.css',
     './js/index.js',
     './js/book-reorder.js',
+    './js/fuzzy-search.js',
     './js/reader.js',
     './js/login.js',
     './js/login-redirect.js',

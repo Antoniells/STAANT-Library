@@ -138,6 +138,153 @@ async function initReader() {
             });
         }
 
+        // ─── NARRAÇÃO POR VOZ (Web Speech API) ── só disponível para EPUB ───────────
+        const synth = window.speechSynthesis;
+        let ttsChunks = [];
+        let ttsChunkIndex = 0;
+        let ttsUtterance = null;  // referência viva: sem isso o Chrome pode "coletar o lixo"
+                                   // do utterance no meio da fala e ela para sem avisar
+        let ttsWatchdog = null;   // contorna o bug do Chrome que pausa sozinho depois de ~15s
+        let ttsState = 'idle';    // 'idle' | 'speaking' | 'paused'
+
+        // Extrai o texto "limpo" (sem tags, sem lixo) do capítulo que está na tela agora
+        function getCurrentChapterText() {
+            if (pdfDoc) return '';
+            const container = document.getElementById('reader-container');
+            const emRolagem  = container.classList.contains('scroll-mode');
+            return emRolagem ? getScrollModeChapterText() : getPagedModeChapterText();
+        }
+
+        function getPagedModeChapterText() {
+            if (!rendition) return '';
+            const contents = rendition.getContents();
+            if (!contents || !contents.length) return '';
+            return contents.map(c => c.document?.body?.innerText || '').join('\n');
+        }
+
+        // Rolagem contínua: acha o "capítulo" (entre dois <hr class="chapter-sep">)
+        // que contém o centro da tela e pega só o texto dele.
+        function getScrollModeChapterText() {
+            const container = document.getElementById('reader-container');
+            const scrollEl  = document.getElementById('scroll-viewer');
+            if (!scrollEl) return '';
+
+            const filhos = [...scrollEl.children];
+            const meio = container.scrollTop + container.clientHeight / 2;
+
+            let inicioIdx = 0, fimIdx = filhos.length;
+            filhos.forEach((el, i) => {
+                if (!el.classList.contains('chapter-sep')) return;
+                if (el.offsetTop <= meio) inicioIdx = i + 1;
+                else if (fimIdx === filhos.length) fimIdx = i;
+            });
+
+            return filhos.slice(inicioIdx, fimIdx).map(el => el.innerText || '').join('\n');
+        }
+
+        function limparTextoParaFala(texto) {
+            return texto.replace(/\s+/g, ' ').trim();
+        }
+
+        // Quebra em frases: mantém cada utterance curta (evita o bug do Chrome com
+        // textos longos) e deixa o watchdog/pause agir entre uma frase e outra.
+        function dividirEmFrases(texto) {
+            const frases = texto.match(/[^.!?]+[.!?]+["')\]]?|[^.!?]+$/g) || [texto];
+            return frases.map(f => f.trim()).filter(Boolean);
+        }
+
+        function getVozPortugues() {
+            const vozes = synth.getVoices();
+            return vozes.find(v => v.lang === 'pt-BR') || vozes.find(v => v.lang?.startsWith('pt')) || null;
+        }
+
+        function falarProximoTrecho() {
+            if (ttsChunkIndex >= ttsChunks.length) { pararNarracao(); return; }
+
+            const utter = new SpeechSynthesisUtterance(ttsChunks[ttsChunkIndex]);
+            utter.lang = 'pt-BR';
+            const voz = getVozPortugues();
+            if (voz) utter.voice = voz;
+
+            utter.onend = () => { ttsChunkIndex++; falarProximoTrecho(); };
+            utter.onerror = (e) => {
+                // 'interrupted'/'canceled' acontecem ao pausar/parar de propósito — não é erro real
+                if (e.error === 'interrupted' || e.error === 'canceled') return;
+                console.warn('Erro na narração:', e.error);
+                ttsChunkIndex++;
+                falarProximoTrecho();
+            };
+
+            ttsUtterance = utter; // segura a referência — evita o utterance sumir por GC
+            synth.speak(utter);
+        }
+
+        function iniciarWatchdogTts() {
+            clearInterval(ttsWatchdog);
+            // Bug conhecido do Chrome: depois de ~15s de fala contínua ele "emperra"
+            // pausado sozinho. Um pause+resume periódico destrava sem atrapalhar
+            // quem pausou de propósito (só roda enquanto realmente falando).
+            ttsWatchdog = setInterval(() => {
+                if (synth.speaking && !synth.paused) { synth.pause(); synth.resume(); }
+            }, 10000);
+        }
+
+        function atualizarBotaoTts() {
+            const icon = document.getElementById('ttsIcon');
+            if (icon) icon.className = ttsState === 'speaking' ? 'fa-solid fa-pause' : 'fa-solid fa-headphones';
+        }
+
+        function iniciarNarracao() {
+            if (pdfDoc || !synth) return;
+
+            if (ttsState === 'paused') {
+                synth.resume();
+                ttsState = 'speaking';
+                atualizarBotaoTts();
+                return;
+            }
+
+            const texto = limparTextoParaFala(getCurrentChapterText());
+            if (!texto) return;
+
+            synth.cancel(); // garante que não sobra fala antiga na fila
+            ttsChunks = dividirEmFrases(texto);
+            ttsChunkIndex = 0;
+            ttsState = 'speaking';
+            iniciarWatchdogTts();
+            falarProximoTrecho();
+            atualizarBotaoTts();
+        }
+
+        function pausarNarracao() {
+            if (ttsState !== 'speaking') return;
+            synth.pause();
+            ttsState = 'paused';
+            atualizarBotaoTts();
+        }
+
+        function pararNarracao() {
+            clearInterval(ttsWatchdog);
+            ttsWatchdog = null;
+            if (synth) synth.cancel();
+            ttsUtterance = null;
+            ttsChunks = [];
+            ttsChunkIndex = 0;
+            ttsState = 'idle';
+            atualizarBotaoTts();
+        }
+
+        if (synth) {
+            document.getElementById('ttsBtn')?.addEventListener('click', () => {
+                if (ttsState === 'speaking') pausarNarracao(); else iniciarNarracao();
+            });
+            // Sai da página/aba: para de vez, pra não deixar voz "fantasma" tocando
+            window.addEventListener('beforeunload', pararNarracao);
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden && ttsState === 'speaking') pausarNarracao();
+            });
+        }
+
         // Grava progresso no Firestore (com debounce) — só depois de ~1min de leitura de verdade
         function saveProgress(fields) {
             if (!isCloudBook || !canSaveProgress || !bookKey) return;
@@ -186,6 +333,7 @@ async function initReader() {
             const title = dbTitle || meta.title || fallbackTitle;
 
             document.getElementById('bookTitle').textContent = title;
+            if (synth) document.getElementById('ttsBtn').style.display = 'flex';
 
             // Usa o ID do livro (Firestore) como chave de progresso/destaques quando disponível,
             // pra não misturar marcações de dois livros que tenham o mesmo título.
@@ -696,6 +844,8 @@ function navigate(direction) {
                 document.getElementById('bookmarkBtn').classList.remove('enabled');
                 document.getElementById('bookmarkIcon').className = 'fa-solid fa-bookmark';
                 document.getElementById('bookmarkBtn').style.color = '';
+                // A página virou: o texto que estava narrando não existe mais na tela
+                if (ttsState !== 'idle') pararNarracao();
             });
         }
 
