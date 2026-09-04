@@ -20,6 +20,14 @@ export const db = getFirestore(app);
 // ficam guardadas localmente pelo próprio SDK e sobem sozinhas pro Firebase quando a
 // conexão voltar. Falha silenciosamente se já tiver outra aba aberta ou o navegador
 // não suportar — o app continua funcionando, só sem esse cache extra.
-enableIndexedDbPersistence(db).catch((err) => {
-    console.warn('Persistência offline do Firestore não habilitada:', err.code || err);
-});
+//
+// Pulado no Safari (mac/iOS): a implementação de IndexedDB do WebKit tem bugs
+// conhecidos de travamento/lentidão ao abrir a conexão, o que deixava o app
+// (login incluído) mais lento pra ficar interativo. Sem esse cache extra o
+// Safari ainda funciona normalmente, só sem persistência offline de escrita.
+const isSafari = /^((?!chrome|android|crios|fxios).)*safari/i.test(navigator.userAgent);
+if (!isSafari) {
+    enableIndexedDbPersistence(db).catch((err) => {
+        console.warn('Persistência offline do Firestore não habilitada:', err.code || err);
+    });
+}

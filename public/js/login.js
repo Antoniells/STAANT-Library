@@ -3,9 +3,16 @@
             signInWithEmailAndPassword,
             GoogleAuthProvider,
             signInWithPopup,
+            signInWithRedirect,
+            getRedirectResult,
             signInWithCredential,
             onAuthStateChanged
         } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+        // Safari (mac e iOS): a proteção contra rastreamento (ITP) costuma quebrar a
+        // comunicação do signInWithPopup, deixando o login com Google lento ou travado.
+        // Usamos signInWithRedirect só aqui — funciona de forma confiável no Safari.
+        const isSafari = /^((?!chrome|android|crios|fxios).)*safari/i.test(navigator.userAgent);
         import { 
             doc, 
             getDoc, 
@@ -125,10 +132,24 @@ async function salvarSessaoERedirecionar(user) {
             });
         }
 
+        // Voltando de um signInWithRedirect (Safari): termina o login que ficou pendente.
+        // Não faz nada se a página abriu normalmente (result vem null nesse caso).
+        (async () => {
+            try {
+                const result = await getRedirectResult(auth);
+                if (result?.user) salvarSessaoERedirecionar(result.user);
+            } catch (error) {
+                console.error("Erro ao concluir login redirecionado:", error);
+                showMessage("Erro ao fazer login com o Google.", "error");
+            }
+        })();
+
         // LOGIN COM GOOGLE
         // Dentro do APK (WebView do Capacitor), o Google bloqueia signInWithPopup
-        // (erro "disallowed_useragent") — precisa do plugin nativo. No navegador normal,
-        // o popup continua funcionando exatamente como antes.
+        // (erro "disallowed_useragent") — precisa do plugin nativo. No Safari, o ITP
+        // costuma quebrar a comunicação do popup, então usamos redirecionamento (a
+        // tela sai do site e volta — o resultado é tratado acima). Nos outros
+        // navegadores, o popup continua funcionando exatamente como antes.
         if (btnGoogle) {
             btnGoogle.addEventListener('click', async () => {
                 if (btnGoogle) {
@@ -147,6 +168,9 @@ async function salvarSessaoERedirecionar(user) {
                         const credential = GoogleAuthProvider.credential(idToken);
                         const userCredential = await signInWithCredential(auth, credential);
                         salvarSessaoERedirecionar(userCredential.user);
+                    } else if (isSafari) {
+                        await signInWithRedirect(auth, new GoogleAuthProvider());
+                        // A página vai navegar embora agora — nada mais a fazer aqui.
                     } else {
                         const provider = new GoogleAuthProvider();
                         const result = await signInWithPopup(auth, provider);

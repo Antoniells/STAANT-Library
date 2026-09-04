@@ -19,6 +19,8 @@
             position: fixed; top: 0; left: 0;
             width: 100%; z-index: 200;
             transition: transform 0.3s ease, opacity 0.3s ease;
+            /* Empurra o cabeçalho pra fora da área do notch/câmera no iPhone */
+            padding-top: env(safe-area-inset-top, 0px);
         }
         /* Chrome imersivo (rolagem estilo YouVersion e modo tela cheia): a barra some
            via JS/toque, não por :hover (que não existe em toque). */
@@ -26,6 +28,8 @@
         /* A barra de fonte (embaixo) some junto com a barra superior — !important pra
            vencer as classes do Tailwind (opacity-40/hover:opacity-100) sempre. */
         #fontSizeBar.ui-hidden { opacity: 0 !important; pointer-events: none; }
+        /* Não deixa a barra flutuante ficar embaixo da barra de gestos do iPhone */
+        #fontSizeBar { bottom: calc(2rem + env(safe-area-inset-bottom, 0px)); }
 
         .glass-header {
             background: rgba(31, 31, 31, 0.98);
@@ -45,9 +49,25 @@
             justify-content: center;
             align-items: flex-start;
         }
+        /* Com o cabeçalho empurrado pra baixo do notch, o conteúdo precisa começar
+           mais embaixo também — senão fica um vão ou uma sobreposição.
+           100dvh (altura "dinâmica" real) substitui 100vh onde suportado: no Safari,
+           100vh ignora a barra do navegador aparecendo/sumindo e deixa sobra ou corte. */
+        @supports (height: 100dvh) {
+            #reader-container {
+                top: calc(112px + env(safe-area-inset-top, 0px));
+                height: calc(100dvh - 112px - env(safe-area-inset-top, 0px));
+            }
+        }
         :fullscreen #reader-container { top: 0; height: 100vh; }
+        @supports (height: 100dvh) {
+            :fullscreen #reader-container { height: 100dvh; }
+        }
         /* Acompanha o header sumindo na rolagem imersiva */
         #reader-container.chrome-hidden { top: 0; height: 100vh; }
+        @supports (height: 100dvh) {
+            #reader-container.chrome-hidden { height: 100dvh; }
+        }
 
         /* ── ÁREA DE LEITURA — modo scroll ── */
         #reader-container.scroll-mode {
