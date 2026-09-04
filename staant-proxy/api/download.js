@@ -1,13 +1,26 @@
-export default async function handler(req, res) {
-    res.setHeader('Access-Control-Allow-Credentials', true);
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-    res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+import { aplicarCors } from '../lib/cors.js';
+import { checarRateLimit } from '../lib/rate-limit.js';
 
-    if (req.method === 'OPTIONS') return res.status(200).end();
+// Só deixa buscar URLs dessas origens — sem isso, esta rota vira um proxy
+// aberto pra qualquer URL https da internet (SSRF / relay anônimo).
+const SUFIXOS_CONFIAVEIS = ['archive.org', 'gutenberg.org', 'google.com'];
+function origemConfiavel(urlStr) {
+    try {
+        const { hostname, protocol } = new URL(urlStr);
+        if (protocol !== 'https:') return false;
+        return SUFIXOS_CONFIAVEIS.some((s) => hostname === s || hostname.endsWith(`.${s}`));
+    } catch {
+        return false;
+    }
+}
+
+export default async function handler(req, res) {
+    if (!aplicarCors(req, res)) return; // era um preflight OPTIONS, já respondido
+    if (!checarRateLimit(req, res)) return;
 
     const bookUrl = req.query.url;
     if (!bookUrl) return res.status(400).send("URL não informada.");
+    if (!origemConfiavel(bookUrl)) return res.status(403).send("Origem não permitida.");
 
     try {
         let secureUrl = bookUrl.replace("http://", "https://");

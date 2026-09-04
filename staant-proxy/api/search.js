@@ -1,9 +1,10 @@
+import { aplicarCors } from '../lib/cors.js';
+import { checarRateLimit } from '../lib/rate-limit.js';
+
 export default async function handler(req, res) {
-    res.setHeader('Access-Control-Allow-Credentials', true);
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
+    if (!aplicarCors(req, res)) return; // era um preflight OPTIONS, já respondido
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    if (req.method === 'OPTIONS') return res.status(200).end();
+    if (!checarRateLimit(req, res)) return;
 
     const query = req.query.q;
     const isTopic = req.query.topic === 'true';
